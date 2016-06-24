@@ -1,4 +1,0 @@
-name = VCF Loader
-description = Loads genotypes from a VCF file into Knowpulse
-core = 7.x
-package = KnowPulse
