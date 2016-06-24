@@ -1,7 +1,0 @@
-<?php
-
-/**
- * @file
- * A module for loading genotypes from a VCF (variant call format) file into KnowPulse
- */
-
