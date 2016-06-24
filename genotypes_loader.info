@@ -1,0 +1,4 @@
+name = Genotypes Loader
+description = Loads genotypes from various formats into Knowpulse
+core = 7.x
+package = KnowPulse

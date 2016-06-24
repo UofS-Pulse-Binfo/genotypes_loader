@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * A module for loading genotypes from various formats into KnowPulse
+ */
+// require_once('nd_genotypes.loader.inc');
+
+/**
+ * Implements hook_menu().
+ *
+function genotypes_loader_menu() {
+  $items = array();
+
+  $items['admin/tripal/extension/nd_genotypes/load'] = array(
+    'title' => 'Load',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nd_genotypes_submit_matrix_loading_job_form'),
+    'access arguments' => array('administer tripal'),
+    'weight' => 3,
+    'file' => 'includes/nd_genotypes.loader.inc'
+  );
+
+  return $items;
+}
+*/
