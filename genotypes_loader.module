@@ -4,11 +4,11 @@
  * @file
  * A module for loading genotypes from various formats into KnowPulse
  */
-// require_once('nd_genotypes.loader.inc');
+require_once('nd_genotypes.loader.inc');
 
 /**
  * Implements hook_menu().
- *
+ */
 function genotypes_loader_menu() {
   $items = array();
 
@@ -19,9 +19,8 @@ function genotypes_loader_menu() {
     'page arguments' => array('nd_genotypes_submit_matrix_loading_job_form'),
     'access arguments' => array('administer tripal'),
     'weight' => 3,
-    'file' => 'includes/nd_genotypes.loader.inc'
+    'file' => 'nd_genotypes.loader.inc'
   );
 
   return $items;
 }
-*/

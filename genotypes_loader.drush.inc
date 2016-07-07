@@ -11,13 +11,100 @@
 function genotypes_loader_drush_command() {
 
   $items['load-VCF'] = array(
-    'description' => 'Takes a VCF file and associates it with a LIMS record to link to germplasm in KnowPulse, then imports marker, variant and genotype data into KnowPulse.',
+    'description' => 'Takes a VCF file and associates it with a project in KnowPulse, then imports marker, variant and genotype data into KnowPulse.',
     'aliases' => array('load-vcf'),
     'arguments' => array(
       'input_file' => 'The filename of the VCF file for upload',
     ),
   );
+
+  $items['load-genotype-matrix'] = array(
+    'description' => 'Takes a genotype matrix and associates it with a project in Knowpulse, and stores marker, variant and genotype data.',
+    'aliases' => array('load-matrix'),
+    'arguments' => array(
+      'input_file' => 'The filename of the matrix file for upload',
+    ),
+    'options' => array(
+      'organism' => 'The organism to which the genotypes are associated with',
+      'variant_type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel)',
+      'marker_type' => 'The Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
+      'nd_geolocation' => 'A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.',
+
+    ),
+  );
+
   return $items;
+}
+
+function drush_genotypes_loader_load_genotype_matrix($input_file = NULL) {
+  // Collect options from the user.
+  // Organism
+  $organism = drush_get_option('organism');
+  if (!$organism) {
+    $sql = "SELECT * FROM {organism} ORDER BY genus, species";
+    $org_rset = chado_query($sql);
+    $organisms = array();
+    while ($organism = $org_rset->fetchObject()) {
+      $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
+    }
+    $organism = drush_choice($organisms, dt('Please select which organism the genotypes are associated with.'));
+  } else {
+    // @TODO: Here, we know the user has provided an organism as an option. Do we need to look up
+    // the organism ID at this point?
+  }
+
+  // Variant type
+  $variant_type = drush_get_option('variant_type');
+  if (!$variant_type) {
+    //$values = array('name' => 'sequence');
+    //$cv = chado_select_record('cv', array('cv_id'), $values);
+    //$cv_id = $cv[0]->cv_id;
+    $variant_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).'));
+    // @TODO: Validate that this is a SO term?
+  }
+
+  // Marker type
+  $marker_type = drush_get_option('marker_type');
+  if (!$marker_type) {
+    $marker_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).'));
+    // @TODO: Validate that this is a SO term?
+  }
+
+  // Project
+  // @TODO: Drush_choice or drush_prompt?
+
+  // ND Geolocation
+  $nd_geolocation = drush_get_option('nd_geolocation');
+  if (!$nd_geolocation) {
+    $nd_geolocation = drush_prompt(dt('Please provide a meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.'));
+    // @TODO: Validate?
+  }
+
+
+  // Check the file exists
+//   if (!$input_file) {
+//     return drush_set_error(dt('ERROR: No matrix file specified. See: \'drush help load-genotype-matrix\''));
+//   }
+//   // Otherwise, let's assume we need the full path for the file by using the cwd
+//   else {
+//     $current_directory = drush_cwd();
+//     $input_file = $current_directory . "/" . $input_file;
+//     // Test the file again, return error if we still can't find it.
+//     if (!file_exists($input_file)) {
+//       return drush_set_error(dt("ERROR: Could not locate $input_file\nPlease ensure you spelled your file correctly or try using the full path."));
+//     }
+//   }
+
+  //
+  print_r("Organism : $organism\n");
+  print_r("Variant type: $variant_type\n");
+  print_r("Marker type: $marker_type\n");
+  print_r("Project: $project\n");
+  print_r("ND_geolocation: $nd_geolocation\n");
+
+
+  //include('nd_genotypes.loader.inc');
+  //nd_genotypes_load_genotype_matrix($input_file);
 }
 
 /**
