@@ -286,7 +286,7 @@ function nd_genotypes_load_genotype_matrix($file, $options, $job_id = 0) {
       nd_genotypes_genotype_call_schema_template()
     );
   }
-
+/*
   // Validate the file
   $file = trim($file);
   if (!file_exists($file)) {
@@ -460,6 +460,7 @@ function nd_genotypes_load_genotype_matrix($file, $options, $job_id = 0) {
 
   // If we got here without returning an error then we completed successfully!
   drush_log("Loading Complete.", "success");
+  */
 
   // Close the file.
   fclose($IN);
