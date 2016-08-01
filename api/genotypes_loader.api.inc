@@ -34,7 +34,7 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
   $values = array_merge($select_values, $insert_values);
 
   // If it exists and the mode is 1 (Insert Only) then return an error to drush.
-  if ($record) {
+  if (sizeof($record) == 1) {
     if ($mode == 1) {
       return drush_set_error(dt('Record "@record_type" already exists but you chose to only insert (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
     }
@@ -42,6 +42,11 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
     else {
       return $record[0]->{$pkey};
     }
+  }
+  // If more then one result is returned then this is NOT UNIQUE and we should report an
+  // error to the user -not just run with the first one.
+  elseif (sizeof($record) > 1) {
+    return drush_set_error(dt('Record "@record_type" is not unique. (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
   }
   // If there is no pre-existing sample but we've been given permission to create it,
   // then we will insert it :-).
@@ -292,6 +297,7 @@ function genotypes_loader_print_progress($step_count, $num_steps, $message = "")
     // Output percentage then shift cursor to beginning of the line
     $output .= '] ' . $percent_complete . ' %  ' . $message . "\r";
 
+    sleep(1);
     return $output;
 }
 

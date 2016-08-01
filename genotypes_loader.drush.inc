@@ -15,6 +15,7 @@ function genotypes_loader_drush_command() {
     'aliases' => array('load-vcf'),
     'arguments' => array(
       'input_file' => 'The filename of the VCF file for upload',
+      'germplasm_mapping' => 'The filename for a tab-delimited file specifying the sample name, germplasm name, and Accession',
     ),
   );
 
@@ -119,7 +120,7 @@ function drush_genotypes_loader_load_genotype_matrix($input_file = NULL) {
 /**
  * Callback for load-VCF command
  */
-function drush_genotypes_loader_load_VCF($input_file = NULL) {
+function drush_genotypes_loader_load_VCF($input_file = NULL, $sample_file = NULL) {
 
   // TEST INPUTS. @TODO: Get these as options
   $options = array(
@@ -136,46 +137,113 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     'nd_geolocation' => '2C33',
   );
 
+  // DATA RETRIEVAL
+  // ------------------------
   // Retrieve all the type_ids to save time loading.
-  $terms = array('DNA', 'Accession', 'is_extracted_from', $options['variant_type'], $options['marker_type'],'is_marker_of','Individual','genetic_marker');
-  $query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name';
+  $terms = array(
+    array('name' => 'DNA', 'cv_name' => 'stock_types'),
+    array('name' => 'Accession', 'cv_name' => 'stock_types'),
+    array('name' => 'Individual', 'cv_name' => 'stock_types'),
+    array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationships'),
+    array('name' => 'is_marker_of', 'cv_name' => 'relationship'),
+    array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
+    array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
+    array('name' => 'marker_type', 'cv_name' => 'feature_property'),
+  );
+  $query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   $types = array();
-  foreach ($terms as $term) {
-    $types[$term] = chado_query($query, array(':name' => $term))->fetchField();
-    drush_print("Type: $term, ID: $types[$term] \n");
+  foreach ($terms as $d) {
+    $term = $d['name'];
+    $types[$term] = chado_query($query, array(':name' => $term, ':cv_name' => $d['cv_name']))->fetchField();
+    if (!$types[$term]) {
+      return drush_set_error(dt("ERROR: Could not find type '@type' in the database.",
+        array('@type' => $term)));
+    }
   }
 
-  // Retrieve the name of our organism and the project ID
-  // @TODO: Output a friendly error when something is not found?
+  // Retrieve the name of our organism
   $organism_name = chado_query(
      "SELECT organism.genus||' '||organism.species
         FROM {organism}
         WHERE organism_id=:id",
      array(':id' => $options['organism_id'])
   )->fetchField();
+  if (!$organism_name) {
+    return drush_set_error(dt("ERROR: Could not find an organism with ID of \'@organism_id\' in the database.",
+      array('@organism_id' => $options['organism_id'])));
+  }
+
+  // Retrieve the project ID
   $project_id = chado_query(
      'SELECT project_id
         FROM {project}
         WHERE name=:name',
      array(':name' => $options['project_name'])
   )->fetchField();
+  if (!$project_id) {
+    return drush_set_error(dt("ERROR: Could not find project \'@project_name\' in the database.",
+      array('@project_name' => $options['project_name'])));
+  }
 
-  // Check the file exists
+  // FILE VALIDATION
+  // ------------------------
+  // Check the files exist
   $input_file = trim($input_file);
+  $sample_file = trim($sample_file);
   if (!$input_file) {
     return drush_set_error(dt('ERROR: No VCF file specified. See: \'drush help load-VCF\''));
+  }
+  if (!$sample_file) {
+    return drush_set_error(dt('ERROR: No sample mapping specified. See: \'drush help load-VCF\''));
   }
   // Otherwise, let's assume we need the full path for the file by using the cwd
   else {
     $current_directory = drush_cwd();
     $input_file = $current_directory . "/" . $input_file;
-    // Test the file again, return error if we still can't find it.
+    $sample_file = $current_directory . "/" . $sample_file;
+    // Test each file again, return error if we still can't find it.
     if (!file_exists($input_file)) {
-      return drush_set_error(dt("ERROR: Could not locate $input_file\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file."));
+      return drush_set_error(dt("ERROR: Could not locate \'@file\'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.",
+        array('@file' => $input_file)));
+    } elseif (!file_exists($sample_file)) {
+      return drush_set_error(dt("ERROR: Could not locate \'@file\'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.",
+        array('@file' => $sample_file)));
     }
   }
 
-  // Open the file and check the first line to ensure it is in VCF format
+  // Open the sample mapping file and ensure we have the expected number of columns
+  // Save it as an associative array and close it
+  $samples = fopen($sample_file, 'r');
+  $first_line = fgets($samples);
+  $first_line = trim($first_line);
+  $samples_keys = preg_split('/[\t]/', $first_line);
+  $num_columns = count($samples_keys);
+  print($num_columns . "\n");
+  if ($num_columns != 5) {
+    return drush_set_error(dt("ERROR: Unexpected number of columns in \'@file\'\nSee: \'drush help load-VCF\''",
+        array('@file' => $sample_file)));
+  }
+  // Remove the first element in the samples_header array to use as a key in a nested associative array for all the samples.
+  // The resulting samples "hash" should look something like:
+  // 'ABC' => (
+  //   'Sample_name' => 'ABC Extraction',
+  //   'Sample_Accession' => '123',
+  //   'Germplasm_name' => 'ABC',
+  //   'Germplasm_Extraction' => '112233'
+  // )
+  array_shift($samples_keys);
+  $samples_array = array();
+  while(!feof($samples)) {
+    $current_line = fgetcsv($samples, 0, "\t");
+    if (empty($current_line)) continue;
+    // Pull out the sample name as it should appear in the VCF file
+    $current_sample = array_shift($current_line);
+    $sample_values = array_combine($samples_keys, $current_line);
+    $cur_sample_array = array("$current_sample" => $sample_values);
+    $samples_array = array_merge($samples_array, $cur_sample_array);
+  }
+
+  // Open the VCF file and check the first line to ensure it is in VCF format
   // ie. 1st line should be: ##fileformat=VCFv4.x
   $VCFfile = fopen($input_file, 'r');
   $first_line = fgets($VCFfile);
@@ -194,17 +262,15 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     }
   }
 
+  // GERMPLASM/STOCK LOOKUP
+  // ------------------------
   // Now that we have our header, look up samples/germplasm
   // If a sample doesn't already exist and insert samples/germplasm is TRUE then create it.
-  drush_print(dt("Looking up samples..."));
 
-  // @TEST DATA
-  // A mapping of KP:GERM#s to germplasm names to test in /dev/clone
-  $KP_germs = array(
-    '964a-46' => 'KP:GERM6755',
-    '1048-8R' => 'KP:GERM7951',
-    'Giftgi' => 'KP:GERM9771',
-  );
+  // Select variables for the helper functions.
+  $select_only = 0;
+  $insert_only = 1;
+  $both = 2;
 
   $stock_ids = array();
   foreach ($header as $k => $name) {
@@ -212,63 +278,59 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     if ($k <= 8) continue;
 
     // Sample
-    drush_print("Currently on sample $name");
     $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
-      'uniquename' => $KP_germs[$name] . '_LAM_plate1_extraction',
+      'uniquename' => $samples_array[$name]['Sample_Accession'],
       'organism_id' => $options['organism_id'],
-      // Hardcoded the type since DNA is a stock type and cv term- we want the stock type here.
-      // @TODO: Don't make assumptions!
-      'type_id' => '3630',
+      // @ASSUMPTION: The original stock for which the marker is associated to is of type DNA
+      'type_id' => $types['DNA'],
     ), array(
-      'name' => $name . ' LAM Plate1 Extraction',
+      'name' => $samples_array[$name]['Sample_name'],
     ));
     if ($stock_id) { $stock_ids[$k]['sample'] = $stock_id; }
     else { return FALSE; }
 
-
     // Germplasm.
-    drush_print("Currently on germplasm $name");
     $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
-      'uniquename' => $KP_germs[$name],
+      'uniquename' => $samples_array[$name]['Germplasm_Accession'],
       'organism_id' => $options['organism_id'],
-      'type_id' => $types['Individual']
     ), array(
-      'name' => $name,
+      'type_id' => $types['Individual'],
+      'name' => $samples_array[$name]['Germplasm_name'],
     ));
     if ($germplasm_id) { $stock_ids[$k]['germplasm'] = $stock_id; }
     else { return FALSE; }
 
     // Now Link them.
-    $status = genotypes_loader_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', 2, array(
+    $status = genotypes_loader_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', $both, array(
       'subject_id' => $stock_id,
       'type_id' => $types['is_extracted_from'],
       'object_id' => $germplasm_id,
     ));
     if (!$status) { return FALSE; }
   }
+  drush_print("Checks for organism, projects, types and germplasm: OK!");
 
-  drush_print("Done processing samples and germplasm!");
+
+  // PROCESSING VCF FILE
+  // ------------------------
   $total_lines = intval(exec("grep -vc '^#' $input_file"));
-  drush_print("Total Lines=".$total_lines);
   // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
   $num_lines = 0;
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
-  drush_print($progress);
+  print($progress);
 
-  // Now processing the SNP calls
+  // Now going line by line to pull out the marker, then genotypes.
   while(!feof($VCFfile)) {
-    $current_line = fgetcsv($VCFfile, 0, "\t");
 
+    $current_line = fgetcsv($VCFfile, 0, "\t");
     if (empty($current_line)) continue;
+
     // Use the header to create the keys for each marker array
     $marker = array_combine($header, $current_line);
 
-    // Select variables for the helper functions.
-    $select_only = 0;
-    $insert_only = 1;
-    $both = 2;
-
+    // INSERT MARKER/VARIANT
+    // ------------------------
     // Pull out the backbone (chromosome, scaffold, etc...) and check that it exists.
     // Since a VCF file is the result of alignments to a genome that should already be in the database,
     // we assume that the "chromosomes" already exist, so let's select and store the feature id ahead of time.
@@ -279,11 +341,11 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     ));
     if (!$chromosome_id) { return FALSE; }
 
-    // This works for KP but do we want to make it generic?
+    // @TODO: This works for KP but do we want to make it generic?
     $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
     $marker_name = $variant_name . '_' . $options['marker_type'];
 
-    // Now create a marker and variant in Chado, and link it to a chromosome.
+    // Now create a variant and marker in Chado, and link it to a chromosome.
     // Variant.
     $variant_id = genotypes_loader_helper_add_record_with_mode('Variant', 'feature', $options['insert_variants'], array(
       'name' => $variant_name,
@@ -305,8 +367,8 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     // Marker Type.
     $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
       'feature_id' => $marker_id,
-      'type_id' => array('name' => 'marker_type'),
-      'value' => 'Genotype-by-Sequencing',
+      'type_id' => $types['marker_type'],
+      'value' => $options['marker_type'],
     ));
     if (!$marker_type_prop_id) { return FALSE; }
 
@@ -336,6 +398,9 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     ));
     if (!$status) { return FALSE; }
 
+
+    // INSERT GENOTYPES
+    // ------------------------
     // The alternate allele can potentially be multiple alleles, so this calls for an associative array
     $ref_allele = $marker['REF'];
     $alt_allele = explode(',',$marker['ALT']);
@@ -343,12 +408,6 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     array_unshift($RefAlt_alleles, $ref_allele);
 
     // Similarly, let's explode the FORMAT cell
-    /* @TODO: As an aside... how are we going to handle the information provided in the INFO field?
-           This involves stats that are specific to the variant, not by SNP. Lacey suggests using
-           the feature_prop table and storing as an array. The issue is whether or not we want to
-           trust this information, since this is dependent on how the file was filtered. If individual
-           SNPs are filtered out, was the INFO updated properly or is it even useful for anything other
-           than for filtering? */
     $format_keys = explode(':',$marker['FORMAT']);
 
     // For each sample, explode the format fields so that we can pull out the genotype directly
@@ -380,29 +439,38 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
         $marker[$sample_name] = $genotype_field;
       }
 
-      // Explode the multi-ploidy calls
-      // @TODO: Saved phased vs unphased info in metadata blob
+      // Create an associative array of "metadata" that will be converted to a JSON blob if
+      // the storage method chosen is the custom genotype call table.
+      $metadata = array();
+      foreach ($format_keys as $subfield) {
+        // We are already saving the genotype, so ignore GT
+        if ($subfield != 'GT') {
+          $metadata[$subfield] = $marker[$sample_name][$subfield];
+        }
+      }
+
+      // Explode any multi-ploidy calls
+      // Also saving phased vs unphased info in metadata blob
       $genotype_calls = $marker[$sample_name]['GT'];
       if (preg_match('/\//', $genotype_calls)) {
         $marker[$sample_name]['GT'] = explode('/', $genotype_calls);
+        $metadata['Phased'] = 'No';
       }
       else if (preg_match('/|/', $genotype_calls)) {
         $marker[$sample_name]['GT'] = explode('|', $genotype_calls);
+        $metadata['Phased'] = 'Yes';
       }
       $genotype_calls = $marker[$sample_name]['GT'];
 
       // Translate the genotypic calls to be nucleotides (ie. AA, CC, etc...)
       $allele = "";
       foreach ($genotype_calls as $call) {
-        // Check for a missing call
-        if ($call == '.') {
-
-        }
         $allele .= $RefAlt_alleles[$call];
         // If we end up with an allele that is longer than 2 nucleotides, we likely have an indel...
         // @TODO: Handle indels!
         if ( strlen($RefAlt_alleles[$call]) > 2 ) {
           drush_log("Found an indel for marker: " . $marker_name, 'warning');
+          // @TODO: Consider a different approach since a VCF file either has no indels or potentially very, very many.
           if (drush_confirm('The genotypes loader currently doesn\'t handle indels. Continue anyway?')) {
             continue;
           } else {
@@ -410,6 +478,10 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
           }
         }
       }
+
+      // If $allele is empty, it means we have missing data for this genotype (ie. ./.)
+      // Thus, skip this particular genotype and move onto the next.
+      if (!$allele) { continue; }
 
       $fields = array(
         'project_id' => $project_id,
@@ -429,6 +501,7 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
       );
 
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
+      if ($options['storage_method'] = 'genotype_call') $fields['meta_data'] = json_encode($metadata);
       $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
       if (!$status) { return FALSE; }
     }
@@ -436,6 +509,7 @@ function drush_genotypes_loader_load_VCF($input_file = NULL) {
     // Update progress
     $num_lines++;
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
-    drush_print($progress);
+    print($progress);
   }
+  drush_print("\nCOMPLETE!");
 }
