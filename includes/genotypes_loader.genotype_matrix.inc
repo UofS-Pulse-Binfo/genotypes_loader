@@ -229,7 +229,7 @@ function nd_genotypes_submit_matrix_loading_job_form_submit($form, $form_state) 
  * @param $job_id
  *   The job_id of the Tripal job calling this function.
  */
-function nd_genotypes_load_genotype_matrix($file, $options, $job_id = 0) {
+function genotypes_loader_load_matrix($file, $options, $job_id = 0) {
 /*
   // Start our transaction.
   $transaction = db_transaction();

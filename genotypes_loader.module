@@ -6,6 +6,7 @@
 
 require_once('api/genotypes_loader.api.inc');
 require_once('includes/genotypes_loader.genotype_matrix.inc');
+require_once('includes/genotypes_loader.vcf.inc');
 
 /**
  * Implements hook_menu().

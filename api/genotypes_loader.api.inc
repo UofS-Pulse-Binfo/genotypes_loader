@@ -171,6 +171,7 @@ function genotypes_loader_helper_add_genotypes_nd_exp($v) {
  *    - stock_id: the stock_id of the sample.
  *    - stock_name: the name of the sample.
  *    - allele: the allele call.
+ *    - meta_data: any additional data associated with a genotype, in the format of a JSON blob
  * @return
  *   TRUE if successful and FALSE otherwise.
  */
@@ -197,6 +198,7 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v) {
     'genotype_id' => $genotype_id,
     'project_id' => $v['project_id'],
     'stock_id' => $v['stock_id'],
+    'meta_data' => $v['meta_data'],
   ));
   if (!$genotype_call_id) return FALSE;
 
