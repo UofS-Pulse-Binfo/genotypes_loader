@@ -33,7 +33,7 @@
  *        method is chosen.
  */
 
-function genotypes_loader_load_VCF($input_file = NULL, $samples, $options) {
+function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $types) {
 
   // Open our VCF file and iterate through meta lines until we reach our header
   $VCFfile = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
@@ -269,7 +269,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options) {
       if (!$allele) { continue; }
 
       $fields = array(
-        'project_id' => $project_id,
+        'project_id' => $options['project_id'],
         'project_name' => $options['project_name'],
         'marker_id' => $marker_id,
         'marker_name' => $marker_name,
@@ -286,7 +286,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options) {
       );
 
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
-      if ($options['storage_method'] = 'genotype_call') $fields['meta_data'] = json_encode($metadata);
+      if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
       $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
       if (!$status) { return FALSE; }
     }

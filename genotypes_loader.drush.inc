@@ -127,12 +127,12 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     'feature_type_of_marker' => 'genetic_marker',
     'marker_type' => 'GBS',
     'project_name' => 'AGILE: Application of Genomic Innovation in the Lentil Economy',
-    'storage_method' => 'nd_exp',
+    'storage_method' => 'stock_genotype',
     'insert_samples' => '2',
     'insert_germplasm' => '2',
     'insert_markers' => '2',
     'insert_variants' => '2',
-    'nd_geolocation' => '2C33',
+    'nd_geolocation' => 'University of Saskatchewan',
   );
 
   // DATA RETRIEVAL
@@ -185,6 +185,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
       array('@project_name' => $options['project_name'])));
   } else {
     drush_print(dt("Found project \"@project_name\" in the database.", array('@project_name' => $options['project_name'])));
+    $options['project_id'] = $project_id;
   }
 
   // FILE VALIDATION
@@ -218,7 +219,6 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   $first_line = trim($first_line);
   $samples_keys = preg_split('/[\t]/', $first_line);
   $num_columns = count($samples_keys);
-  print($num_columns . "\n");
   if ($num_columns != 5) {
     return drush_set_error(dt("ERROR: Unexpected number of columns in \'@file\'\nSee: \'drush help load-genotypes\''",
         array('@file' => $sample_file)));
@@ -274,11 +274,14 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
       }
     }
   }
-  if ($file_format == "vcf") { genotypes_loader_load_VCF($input_file, $samples_array, $options); }
+  if ($file_format == "vcf") { genotypes_loader_load_VCF($input_file, $samples_array, $options, $types); }
   else if ($file_format == "matrix") { genotypes_loader_load_matrix($input_file, $samples_array, $options); }
   else if ($file_format == "legacy") { genotypes_loader_load_legacy($input_file, $samples_array, $options); }
   else {
       return drush_set_error(dt("ERROR: Could not determine the format for \'@file\'\n. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.",
         array('@file' => $file)));
   }
+
+  drush_print(dt("Storage method: \"@method\"", array('@method' => $options['storage_method'])));
+
 }
