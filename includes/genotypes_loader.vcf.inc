@@ -228,8 +228,8 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
       // the storage method chosen is the custom genotype call table.
       $metadata = array();
       foreach ($format_keys as $subfield) {
-        // We are already saving the genotype, so ignore GT
-        if ($subfield != 'GT') {
+        // We are already saving the genotype, so ignore GT. Also, ignore any subfields with missing data.
+        if (($subfield != 'GT') && (!preg_match('/\./', $marker[$sample_name][$subfield]))) {
           $metadata[$subfield] = $marker[$sample_name][$subfield];
         }
       }
@@ -239,11 +239,11 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
       $genotype_calls = $marker[$sample_name]['GT'];
       if (preg_match('/\//', $genotype_calls)) {
         $marker[$sample_name]['GT'] = explode('/', $genotype_calls);
-        $metadata['Phased'] = 'No';
+        $metadata['Phased'] = 'False';
       }
       else if (preg_match('/|/', $genotype_calls)) {
         $marker[$sample_name]['GT'] = explode('|', $genotype_calls);
-        $metadata['Phased'] = 'Yes';
+        $metadata['Phased'] = 'True';
       }
       $genotype_calls = $marker[$sample_name]['GT'];
 
