@@ -1,11 +1,10 @@
-Marker name Chromosome  Position Sample name Genotype call
-Chr1p946	Chr1	946 Ankerita the Gracious A
-Chr1p946	Chr1	946	Ibot of the Mountains	A
-Chr1p946	Chr1	946	Isabella the Paladin	A
-Chr1p946	Chr1	946	Maut the Fair A
-Chr1p946	Chr1	946	Esabell the Daring  A
-Chr1p946	Chr1	946	Avina the Gladiator A
-Chr1p946	Chr1	946	Ybelote the Patroller G
-Chr1p946	Chr1	946	Victoria the Orange A
-Chr1p946	Chr1	946	Sybbyl the Pale G
-Chr1p946	Chr1	946	Elysande the Persistent A
+Marker name	Chromosome	Position	Sample name	Genotype call
+LcChr1p946	LcChr1	946	1048-8R	AA
+LcChr1p946	LcChr1	946	964a-46	AG
+LcChr1p946	LcChr1	946	Giftgi	AA
+LcChr1p19888	LcChr1	19888	1048-8R	TT
+LcChr1p19888	LcChr1	19888	964a-46	GG
+LcChr1p19888	LcChr1	19888	Giftgi	GG
+LcChr4p450000	LcChr4	450000	1048-8R	TA
+LcChr1p450000	LcChr4	450000	964a-46	AA
+LcChr1p450000	LcChr4	450000	Giftgi	TT

@@ -9,9 +9,6 @@
  *
  * @param $input_file
  *   The absolute path of the VCF file to be parsed.
- * @param $sample_file
- *   The absolute path of a tab-delimited file specifying the samples in the VCF file and
- *   their associated stock name, accession, germplasm name and germplasm accession.
  * @param $options
  *   An associative array of additional information. Keys include:
  *     - organism_id: the organism_id of both the marker/variants and samples/germplasm.
@@ -33,7 +30,7 @@
  *        method is chosen.
  */
 
-function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $types) {
+function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
 
   // Open our VCF file and iterate through meta lines until we reach our header
   $VCFfile = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
@@ -47,58 +44,16 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
     }
   }
 
-  // GERMPLASM/STOCK LOOKUP
-  // ------------------------
-  // Now that we have our header, look up samples/germplasm
-  // If a sample doesn't already exist and insert samples/germplasm is TRUE then create it.
-
   // Select variables for the helper functions.
   $select_only = 0;
   $insert_only = 1;
   $both = 2;
 
-  $stock_ids = array();
-  foreach ($header as $k => $name) {
-    // Skip over columns not containing a sample name
-    if ($k <= 8) continue;
-
-    // Sample
-    $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
-      'uniquename' => $samples[$name]['Sample_Accession'],
-      'organism_id' => $options['organism_id'],
-      // @ASSUMPTION: The original stock for which the marker is associated to is of type DNA
-      'type_id' => $types['DNA'],
-    ), array(
-      'name' => $samples[$name]['Sample_name'],
-    ));
-    if ($stock_id) { $stock_ids[$k]['sample'] = $stock_id; }
-    else { return FALSE; }
-
-    // Germplasm.
-    $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
-      'uniquename' => $samples[$name]['Germplasm_Accession'],
-      'organism_id' => $options['organism_id'],
-    ), array(
-      'type_id' => $types['Individual'],
-      'name' => $samples[$name]['Germplasm_name'],
-    ));
-    if ($germplasm_id) { $stock_ids[$k]['germplasm'] = $stock_id; }
-    else { return FALSE; }
-
-    // Now Link them.
-    $status = genotypes_loader_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', $both, array(
-      'subject_id' => $stock_id,
-      'type_id' => $types['is_extracted_from'],
-      'object_id' => $germplasm_id,
-    ));
-    if (!$status) { return FALSE; }
-  }
-  drush_print("Checks for organism, projects, types and germplasm: OK!");
-
-
+  // ------------------------
   // PROCESSING VCF FILE
   // ------------------------
   $total_lines = intval(exec("grep -vc '^#' $input_file"));
+  drush_print("Number of lines to process: $total_lines");
   // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
   $num_lines = 0;
   // Start the progress bar
@@ -114,6 +69,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
     // Use the header to create the keys for each marker array
     $marker = array_combine($header, $current_line);
 
+    // ------------------------
     // INSERT MARKER/VARIANT
     // ------------------------
     // Pull out the backbone (chromosome, scaffold, etc...) and check that it exists.
@@ -183,7 +139,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
     ));
     if (!$status) { return FALSE; }
 
-
+    // ------------------------
     // INSERT GENOTYPES
     // ------------------------
     // The alternate allele can potentially be multiple alleles, so this calls for an associative array
@@ -195,18 +151,18 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
     // Similarly, let's explode the FORMAT cell
     $format_keys = explode(':',$marker['FORMAT']);
 
-    // For each sample, explode the format fields so that we can pull out the genotype directly
+    // For each genotype source, explode the format fields so that we can pull out the genotype directly
     for ($i=9;$i<count($header);$i++) {
-      $sample_name = $header[$i];
+      $source_name = $header[$i];
       if ($format_keys) {
         $num_fk = count($format_keys);
-        $format_fields = explode(":",$marker[$sample_name]);
+        $format_fields = explode(":",$marker[$source_name]);
         $num_ff = count($format_fields);
         // NOTE: Why the following comparison between format key and field counts?
         // Occasionally we may see that the format field will specify additional sub-fields than what is
-        // actually present for that sample. This is because of questionably loose requirements for VCF:
+        // actually present for that source. This is because of questionably loose requirements for VCF:
         // missing sub-fields are shown as ".", except for trailing fields which can be dropped. Therefore,
-        // if there are fewer format fields for a sample than expected, we will add onto the end of the
+        // if there are fewer format fields for a source than expected, we will add onto the end of the
         // array the appropriate number of missing values.
         while ($num_fk > $num_ff)
         {
@@ -214,14 +170,14 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
           $num_ff = count($format_fields);
         }
         $geno_field_arr = array_combine($format_keys,$format_fields);
-        // Now we nest the marker array with this new genotype fields array for each sample
-        // Example: Marker -> Sample1 -> GT -> 0/1
+        // Now we nest the marker array with this new genotype fields array for each source
+        // Example: Marker -> Source1 -> GT -> 0/1
         //                            -> DP -> 25
-        $marker[$sample_name] = $geno_field_arr;
+        $marker[$source_name] = $geno_field_arr;
       } else {
         $genotype_field = [];
-        $genotype_field[$marker['FORMAT']] = $marker[$sample_name];
-        $marker[$sample_name] = $genotype_field;
+        $genotype_field[$marker['FORMAT']] = $marker[$source_name];
+        $marker[$source_name] = $genotype_field;
       }
 
       // Create an associative array of "metadata" that will be converted to a JSON blob if
@@ -229,23 +185,23 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
       $metadata = array();
       foreach ($format_keys as $subfield) {
         // We are already saving the genotype, so ignore GT. Also, ignore any subfields with missing data.
-        if (($subfield != 'GT') && (!preg_match('/\./', $marker[$sample_name][$subfield]))) {
-          $metadata[$subfield] = $marker[$sample_name][$subfield];
+        if (($subfield != 'GT') && (!preg_match('/\./', $marker[$source_name][$subfield]))) {
+          $metadata[$subfield] = $marker[$source_name][$subfield];
         }
       }
 
       // Explode any multi-ploidy calls
       // Also saving phased vs unphased info in metadata blob
-      $genotype_calls = $marker[$sample_name]['GT'];
+      $genotype_calls = $marker[$source_name]['GT'];
       if (preg_match('/\//', $genotype_calls)) {
-        $marker[$sample_name]['GT'] = explode('/', $genotype_calls);
+        $marker[$source_name]['GT'] = explode('/', $genotype_calls);
         $metadata['Phased'] = 'False';
       }
       else if (preg_match('/|/', $genotype_calls)) {
-        $marker[$sample_name]['GT'] = explode('|', $genotype_calls);
+        $marker[$source_name]['GT'] = explode('|', $genotype_calls);
         $metadata['Phased'] = 'True';
       }
-      $genotype_calls = $marker[$sample_name]['GT'];
+      $genotype_calls = $marker[$source_name]['GT'];
 
       // Translate the genotypic calls to be nucleotides (ie. AA, CC, etc...)
       $allele = "";
@@ -280,15 +236,15 @@ function genotypes_loader_load_VCF($input_file = NULL, $samples, $options, $type
         'variant_name' => $variant_name,
         'variant_type_id' => $types[ $options['variant_type'] ],
         'variant_type' => $options['variant_type'],
-        'stock_id' => $stock_ids[$i]['sample'],
-        'stock_name' => $sample_name,
+        'stock_id' => $options[$source_name]['sample_stock_id'],
+        'stock_name' => $options[$source_name]['sample_name'],
         'allele' => $allele,
       );
 
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
       if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
-      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
-      if (!$status) { return FALSE; }
+      //$status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      //if (!$status) { return FALSE; }
     }
 
     // Update progress
