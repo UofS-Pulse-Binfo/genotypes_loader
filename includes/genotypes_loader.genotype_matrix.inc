@@ -442,7 +442,6 @@ function genotypes_loader_load_matrix($file, $options, $job_id = 0) {
         'project_name' => $options['project_name'],
         'marker_id' => $marker_id,
         'marker_name' => $marker_name,
-        'marker_type_id' => $types[ $options['marker_type'] ],
         'marker_type' => $options['marker_type'],
         'variant_id' => $variant_id,
         'variant_name' => $variant_name,

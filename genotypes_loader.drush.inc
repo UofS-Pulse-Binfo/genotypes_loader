@@ -178,6 +178,8 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     }
   }
 
+  print_r($types);
+
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
      "SELECT organism.genus||' '||organism.species
@@ -305,13 +307,13 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     ));
     if (!$status) { return FALSE; }
 //    drush_print("Linked stock ID: $stock_id to stock ID: $germplasm_id");
+
+    // Save the sample name (in Chado) and its stock id in the options array
+    $options['sample_list'][$source_name]['sample_name'] = $sample_name;
+    $options['sample_list'][$source_name]['sample_stock_id'] = $stock_id;
   }
 
   drush_print("  Successfully mapped stocks and germplasm.");
-
-  // Save the sample name (in Chado) and its stock id in the options array
-  $options['sample_list'][$source_name]['sample_name'] = $sample_name;
-  $options['sample_list'][$source_name]['sample_stock_id'] = $stock_id;
 
   // ----- DETECT INPUT FILE TYPE -----
   // Open the input file and try to determine which type of file it is.

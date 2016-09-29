@@ -229,22 +229,21 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
         'project_name' => $options['project_name'],
         'marker_id' => $marker_id,
         'marker_name' => $marker_name,
-        'marker_type_id' => $types[ $options['marker_type'] ],
         'marker_type' => $options['marker_type'],
         'feature_type_of_marker' => $options['feature_type_of_marker'],
         'variant_id' => $variant_id,
         'variant_name' => $variant_name,
         'variant_type_id' => $types[ $options['variant_type'] ],
         'variant_type' => $options['variant_type'],
-        'stock_id' => $options[$source_name]['sample_stock_id'],
-        'stock_name' => $options[$source_name]['sample_name'],
+        'stock_id' => $options['sample_list'][$source_name]['sample_stock_id'],
+        'stock_name' => $options['sample_list'][$source_name]['sample_name'],
         'allele' => $allele,
       );
 
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
       if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
-      //$status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
-      //if (!$status) { return FALSE; }
+      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      if (!$status) { return FALSE; }
     }
 
     // Update progress

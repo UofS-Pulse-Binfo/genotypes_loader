@@ -51,8 +51,8 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
   // -----------------------------
   $total_lines = intval(exec("grep -vc '^#' $input_file"));
   drush_print("Number of lines to process: $total_lines");
-  // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
-  $num_lines = 0;
+  // Setting this to 1 since we're counting number of lines with SNPs + 1 header line
+  $num_lines = 1;
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
   print($progress);
@@ -73,13 +73,14 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
     // @ASSUMPTION: SNPs only, no indels
     $fmin = $current_line[2] - 1;
     $fmax = $current_line[2];
-    // Column 4 => Sample Name
-    $sample_name = $current_line[3];
+    // Column 4 => DNA source
+    $source_name = $current_line[3];
     // Column 5 => Genotype
-    $genotype_call = $current_line[4];
+    $allele = $current_line[4];
 
-    print "Marker name: " . $marker_name . "\nVariant name: " . $variant_name . "\nBackbone: " . $backbone_name . "\nFmin: " . $fmin . "\nFmax: " . $fmax . "\nSample name: " . $sample_name . "\nGenotype Call: " . $genotype_call . "\n";
+    //print "Marker name: " . $marker_name . "\nVariant name: " . $variant_name . "\nBackbone: " . $backbone_name . "\nFmin: " . $fmin . "\nFmax: " . $fmax . "\nSample name: " . $source_name . "\nGenotype Call: " . $allele . "\n";
 
+    // ------------------------
     // INSERT MARKER/VARIANT
     // ------------------------
     // Pull out the backbone (chromosome, scaffold, etc...) and check that it exists.
@@ -147,9 +148,34 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
     // ------------------------
     // INSERT GENOTYPES
     // ------------------------
-    //
 
-    print("Check for chromosome, adding of variants and markers: DONE!\n");
+    $fields = array(
+      'project_id' => $options['project_id'],
+      'project_name' => $options['project_name'],
+      'marker_id' => $marker_id,
+      'marker_name' => $marker_name,
+      'marker_type' => $options['marker_type'],
+      'feature_type_of_marker' => $options['feature_type_of_marker'],
+      'variant_id' => $variant_id,
+      'variant_name' => $variant_name,
+      'variant_type_id' => $types[ $options['variant_type'] ],
+      'variant_type' => $options['variant_type'],
+      'stock_id' => $options['sample_list'][$source_name]['sample_stock_id'],
+      'stock_name' => $options['sample_list'][$source_name]['sample_name'],
+      'allele' => $allele,
+    );
 
+    if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
+
+    print_r($fields);
+
+    $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+    if (!$status) { return FALSE; }
+
+    // Update progress
+    $num_lines++;
+    $progress = genotypes_loader_print_progress($num_lines, $total_lines);
+    print($progress);
   }
+  drush_print("\nCOMPLETE!");
 }
