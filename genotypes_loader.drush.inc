@@ -146,6 +146,18 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   );
   drush_print('  Loading your data according to the "'.$storage_method[ $options['storage_method'] ].'" Method.');
 
+  // Check the custom table is there if using Method #2: Genotype Call
+  // @Lacey: This code was originally from the genotype matrix loader. Is this sufficient? (looks like it
+  // just creates the custom table?)
+  /*
+  if ($options['storage_method'] == 'genotype_call') {
+    chado_create_custom_table(
+      'genotype_call',
+      nd_genotypes_genotype_call_schema_template()
+    );
+  }
+  */
+
   $db_options = array(
     1 => 'Insert Only',
     0 => 'Select Only',
@@ -354,7 +366,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
       break;
     case "matrix":
       drush_print("  Detected genotype matrix file format. \nProceeding to load genotypes...");
-      genotypes_loader_load_matrix($input_file, $options);
+      genotypes_loader_load_matrix($input_file, $options, $types);
       break;
     case "legacy":
       drush_print("  Detected flat file format. \nProceeding to load genotypes...");

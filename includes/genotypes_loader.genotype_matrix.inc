@@ -7,7 +7,7 @@
 /**
  * Provides an interface for loading data.
  */
-function nd_genotypes_submit_matrix_loading_job_form($form, $form_state) {
+function genotypes_loader_submit_loading_job_form($form, $form_state) {
 
   $storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
 
@@ -185,7 +185,7 @@ function nd_genotypes_submit_matrix_loading_job_form($form, $form_state) {
 /**
  * SUBMIT: Provides an interface for loading data.
  */
-function nd_genotypes_submit_matrix_loading_job_form_submit($form, $form_state) {
+function genotypes_loader_submit_loading_job_form_submit($form, $form_state) {
   global $user;
 
   // Simply submit a tripal job :-).
@@ -229,161 +229,68 @@ function nd_genotypes_submit_matrix_loading_job_form_submit($form, $form_state) 
  * @param $job_id
  *   The job_id of the Tripal job calling this function.
  */
-function genotypes_loader_load_matrix($file, $options, $job_id = 0) {
-/*
-  // Start our transaction.
-  $transaction = db_transaction();
-*/
-  $organism_name = chado_query(
-     "SELECT organism.genus||' '||organism.species
-        FROM {organism}
-        WHERE organism_id=:id",
-     array(':id' => $options['organism_id'])
-  )->fetchField();
-  $project_id = chado_query(
-     'SELECT project_id
-        FROM {project}
-        WHERE name=:name',
-     array(':name' => $options['project_name'])
-  )->fetchField();
+function genotypes_loader_load_matrix($input_file, $options, $types, $job_id = 0) {
 
-  // Display the options to the user.
-  $storage_method = array(
-    'nd_exp' => 'Natural Diversity Experiment',
-    'genotype_call' => 'Genotype Call Custom Table',
-    'stock_genotype' => 'Genotype Stock table',
-    'custom' => 'Custom',
-  );
-  drush_print("\n" . 'Loading your data according to the "'.$storage_method[ $options['storage_method'] ].'" Method.');
+  // Set some variables to abstract mode for genotypes_loader_helper_add_record_with_mode().
+  $select_only = 0;
+  $insert_only = 1;
+  $both = 2;
 
-  drush_print("File: ".$file);
-  drush_print("Options:");
-  drush_print("\tProject=".$options['project_name'].' ('.$project_id.').');
-  drush_print("\tOrganism ID=".$organism_name.' ('.$options['organism_id'].').');
-  drush_print("\tVariant Type=".$options['variant_type'].'.');
-  drush_print("\tMarker Type=".$options['marker_type'].'.');
-
-  if (isset($options['nd_geolocation'])) {
-    drush_print("\tGeolocation=".$options['nd_geolocation'].'.');
-  }
-
-  $db_options = array(
-    1 => 'Insert Only',
-    0 => 'Select Only',
-    2 => 'Insert And Select',
-  );
-  drush_print("\tSamples=".$db_options[ $options['insert_samples'] ].'.');
-  drush_print("\tGermplasm=".$db_options[ $options['insert_germplasm'] ].'.');
-  drush_print("\tVariants=".$db_options[ $options['insert_variants'] ].'.');
-  drush_print("\tMarkers=".$db_options[ $options['insert_markers'] ].'.');
-
-  drush_print(" ");
-
-  // Check the custom table is there if using Method #2: Genotype Call
-  if ($options['storage_method'] == 'genotype_call') {
-    chado_create_custom_table(
-      'genotype_call',
-      nd_genotypes_genotype_call_schema_template()
-    );
-  }
-/*
-  // Validate the file
-  $file = trim($file);
-  if (!file_exists($file)) {
-    return drush_set_error(t("Cannot find the file on the system. Check that the file exists or that the web server has permissions to read the file."));
-  }
-
-  // Open the file.
-  $IN = fopen($DRUPAL_ROOT . '/' . $file, "r") or die("Unable to open file!");
+  // Open our matrix file
+  $MATRIX_FILE = fopen($input_file, "r") or die("ERROR: Unable to open $input_file!");
 
   // Save the header.
-  $header = fgetcsv($IN, 0, "\t");
+  $header = fgetcsv($MATRIX_FILE, 0, "\t");
 
-  // Retrieve all the type_ids to save time loading.
-  $terms = array('DNA', 'Accession', 'is_extracted_from', $options['variant_type'], $options['marker_type'],'is_marker_of');
-  $query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name';
-  $types = array();
-  foreach ($terms as $term) {
-    $types[$term] = chado_query($query, array(':name' => $term))->fetchField();
-  }
-
-  // First look up all the Samples/Germplasm.
-  // If they don't already exist and insert samples/germplasm is TRUE
-  // (ie: 1= INSERT ONLY AND 2=INSERT & SELECT) then create them first.
-  drush_print("Ensuring all samples exist...");
-  $stock_ids = array();
-  foreach ($header as $k => $name) {
-    if ($k <= 2) continue;
-
-    // Sample.
-    $stock_id = nd_genotypes_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
-      'name' => $name . ' Extraction',
-      'uniquename' => $name . ' Extraction',
-      'organism_id' => $options['organism_id'],
-      'type_id' => $types['DNA']
-    ));
-    if ($stock_id) { $stock_ids[$k]['sample'] = $stock_id; }
-    else { return FALSE; }
-
-    // Germplasm.
-    $germplasm_id = nd_genotypes_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
-      'name' => $name,
-      'uniquename' => $name,
-      'organism_id' => $options['organism_id'],
-      'type_id' => $types['Accession']
-    ));
-    if ($germplasm_id) { $stock_ids[$k]['germplasm'] = $stock_id; }
-    else { return FALSE; }
-
-    // Now Link them.
-    $status = nd_genotypes_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', 2, array(
-      'subject_id' => $stock_id,
-      'type_id' => $types['is_extracted_from'],
-      'object_id' => $germplasm_id,
-    ));
-    if (!$status) { return FALSE; }
-  }
-  drush_log("All stocks now exist.","ok");
+  // -------------------------
+  // PROCESSING MATRIX FILE
+  // -------------------------
   // Determine the number of lines in the input file.
-  $total_lines = intval(exec("wc -l '$file'"));
-  drush_print("Total Lines=".$total_lines);
+  $total_lines = intval(exec("wc -l '$input_file'"));
+  drush_print("Number of lines to process: " . $total_lines);
+  // Setting this to 1 since we're counting number of lines with SNPs + 1 header line
+  $num_lines = 1;
+  // Start the progress bar
+  $progress = genotypes_loader_print_progress($num_lines, $total_lines);
+  print($progress);
 
   // For each line in the file (except the header) save the genotypes to the database
   // according to the specified method.
+  while(!feof($MATRIX_FILE)) {
 
-  drush_print("\nNow processing each line of the file for variants, markers and genotypes...");
-  $num_lines = 1;
-  while(!feof($IN)) {
-    $line = fgetcsv($IN, 0, "\t");
+    $current_line = fgetcsv($MATRIX_FILE, 0, "\t");
 
-    $num_lines++;
-    // Update progress every 500 lines.
-    if ($num_lines%500 == 0) {
-      $percent = round($num_lines / $total_lines, 4) * 100;
-      drush_print($num_lines . ' of ' . $total_lines . '(' . $percent . '%)');
-    }
-
-    // If the line is empty then skip it.
-    if (sizeof($line) < 2) { continue; }
+    // If the line doesn't have at least 2 columns (such as a comment or empty line) then skip it.
+    if (sizeof($current_line) < 2) { continue; }
 
     // Set up some readable variables for the info stored in the first 3 columns.
-    $variant_name = $line[0];
-    $marker_name = $line[0] . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
-    $backbone_name = $line[1];
-    $fmin = $line[2]-1;
-    $fmax = $line[2];
+    // Column 1 => Variant Name, Marker Name
+    $variant_name = $current_line[0];
+    $marker_name = $current_line[0] . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
+    // Column 2 => Backbone
+    $backbone_name = $current_line[1];
+    // Column 3 => Position on backbone
+    // @ASSUMPTION: SNPs only, no indels
+    $fmin = $current_line[2]-1;
+    $fmax = $current_line[2];
 
-    // Set some variables to abstract mode for nd_genotypes_helper_add_record_with_mode().
-    $select_only = 0;
-    $insert_only = 1;
-    $both = 2;
+    //print "Marker name: " . $marker_name . "\nVariant name: " . $variant_name . "\nBackbone: " . $backbone_name . "\nFmin: " . $fmin . "\nFmax: " . $fmax . "\n";
 
-    //-----------------------
-    // First create the marker/variant/chromosome combination.
-    // This is the same for all storage methods.
+    // ------------------------
+    // INSERT MARKER/VARIANT
+    // ------------------------
+    // Pull out the backbone (chromosome, scaffold, etc...) and check that it exists.
+    // ----- Chromosome -----
+    $chromosome_id = genotypes_loader_helper_add_record_with_mode('Chromosome', 'feature', $select_only, array(
+        'name' => $backbone_name,
+        'uniquename' => $backbone_name,
+        'organism_id' => $options['organism_id'],
+    ));
+    if (!$chromosome_id) { return FALSE; }
 
-    // Variant.
-    $variant_id = nd_genotypes_helper_add_record_with_mode('Variant', 'feature', $options['insert_variants'], array(
+    // Now create a variant and marker in Chado, and link it to a chromosome.
+    // ----- Variant -----
+    $variant_id = genotypes_loader_helper_add_record_with_mode('Variant', 'feature', $options['insert_variants'], array(
       'name' => $variant_name,
       'uniquename' => $variant_name,
       'organism_id' => $options['organism_id'],
@@ -391,76 +298,97 @@ function genotypes_loader_load_matrix($file, $options, $job_id = 0) {
     ));
     if (!$variant_id) { return FALSE; }
 
-    // Marker.
-    $marker_id = nd_genotypes_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
+    // ----- Marker -----
+    $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
       'uniquename' => $marker_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['marker_type'] ]
+      'type_id' => $types[ $options['feature_type_of_marker'] ],
     ));
     if (!$marker_id) { return FALSE; }
 
-    // Link Variant to marker.
-    $status = nd_genotypes_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
+    // ----- Marker Type -----
+    $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
+      'feature_id' => $marker_id,
+      'type_id' => $types['marker_type'],
+      'value' => $options['marker_type'],
+    ));
+    if (!$marker_type_prop_id) { return FALSE; }
+
+    // ----- Link Variant to Marker -----
+    $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
       'subject_id' => $marker_id,
       'type_id' => $types['is_marker_of'],
       'object_id' => $variant_id,
     ));
     if (!$status) { return FALSE; }
 
-    // Locate the variant on chromosome.
-    $status = nd_genotypes_helper_add_record_with_mode('Variant location on Chromsome', 'featureloc', $both, array(
+    // ----- Locate the variant on chromosome -----
+    $status = genotypes_loader_helper_add_record_with_mode('Variant location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $variant_id,
-      'srcfeature_id' => array('name' => $backbone_name),
+      'srcfeature_id' => $chromosome_id,
       'fmin' => $fmin,
       'fmax' => $fmax
     ));
     if (!$status) { return FALSE; }
 
-    // Locate the marker on chromosome.
-    $status = nd_genotypes_helper_add_record_with_mode('Marker location on Chromsome', 'featureloc', $both, array(
+    // ----- Locate the marker on chromosome -----
+    $status = genotypes_loader_helper_add_record_with_mode('Marker location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $marker_id,
-      'srcfeature_id' => array('name' => $backbone_name),
+      'srcfeature_id' => $chromosome_id,
       'fmin' => $fmin,
       'fmax' => $fmax
     ));
     if (!$status) { return FALSE; }
 
-    //-----------------------
+    // -----------------------
+    // INSERT GENOTYPES
+    // -----------------------
     // Now process the genotypes.
-    foreach ($line as $k => $allele) {
+    foreach ($current_line as $k => $allele) {
 
       // Skip the first 3 columns since they have to do with marker/location which
       // have already been handled above.
       if ($k <= 2) continue;
 
+      // Get the source name so that we can find the unique stock name and ID
+      $source_name = $header[$k];
+
+      //print "Inserting genotype " . $allele . " for sample " . $source_name . "\n";
+
       // We are going to use a helper function for this portion since it depends heavily
       // on the storage method chosen. As such, compile an array of fields to pass in
       // and then call the appropriate helper function.
       $fields = array(
-        'project_id' => $project_id,
+        'project_id' => $options['project_id'],
         'project_name' => $options['project_name'],
         'marker_id' => $marker_id,
         'marker_name' => $marker_name,
         'marker_type' => $options['marker_type'],
+        'feature_type_of_marker' => $options['feature_type_of_marker'],
         'variant_id' => $variant_id,
         'variant_name' => $variant_name,
         'variant_type_id' => $types[ $options['variant_type'] ],
         'variant_type' => $options['variant_type'],
-        'stock_id' => $stock_ids[$k]['sample'],
-        'stock_name' => $header[$k],
+        'stock_id' => $options['sample_list'][$source_name]['sample_stock_id'],
+        'stock_name' => $options['sample_list'][$source_name]['sample_name'],
         'allele' => $allele,
       );
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
-      $status = call_user_func('nd_genotypes_helper_add_genotypes_'.$options['storage_method'], $fields);
+
+      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
       if (!$status) { return FALSE; }
     }
-  }
+    // Update progress
+    $num_lines++;
+    $progress = genotypes_loader_print_progress($num_lines, $total_lines);
+    print($progress);
 
+  }
   // If we got here without returning an error then we completed successfully!
-  drush_log("Loading Complete.", "success");
-  */
+  print("\n");
+  drush_log("Loading Complete. " . $num_lines . " lines processed.", "success");
 
   // Close the file.
-  fclose($IN);
+  fclose($MATRIX_FILE);
 }

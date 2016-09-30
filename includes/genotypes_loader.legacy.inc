@@ -36,7 +36,7 @@
 function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
 
   // Open our file
-  $file = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
+  $FILE = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
 
   // Save the header
   $header = fgetcsv($file, 0, "\t");
@@ -58,15 +58,16 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
   print($progress);
 
   // For each line except for the header, process sample, variant, marker and genotype
-  while(!feof($file)) {
+  while(!feof($FILE)) {
 
     $current_line = fgetcsv($file, 0, "\t");
+    // If the line doesn't have at least 2 columns (such as a comment or empty line) then skip it.
     if (empty($current_line)) continue;
 
     // Set up some variables to save the values in each column
-    // Column 1 => Marker Name, Variant Name
-    $marker_name = $current_line[0] . '_' . $options['marker_type'];
+    // Column 1 => Variant Name, Marker Name
     $variant_name = $current_line[0];
+    $marker_name = $current_line[0] . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
     // Column 2 => Backbone
     $backbone_name = $current_line[1];
     // Column 3 => Position on backbone
@@ -107,7 +108,7 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
       'name' => $marker_name,
       'uniquename' => $marker_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['feature_type_of_marker'] ]
+      'type_id' => $types[ $options['feature_type_of_marker'] ],
     ));
     if (!$marker_id) { return FALSE; }
 
@@ -167,8 +168,6 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
 
     if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
 
-    print_r($fields);
-
     $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
     if (!$status) { return FALSE; }
 
@@ -177,5 +176,9 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
     print($progress);
   }
-  drush_print("\nCOMPLETE!");
+  // If we got here without returning an error then we completed successfully!
+  drush_log("Loading Complete.", "success");
+
+  // Close the file.
+  fclose($FILE);
 }

@@ -53,7 +53,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   // PROCESSING VCF FILE
   // ------------------------
   $total_lines = intval(exec("grep -vc '^#' $input_file"));
-  drush_print("Number of lines to process: $total_lines");
+  drush_print("Number of lines to process: " . $total_lines);
   // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
   $num_lines = 0;
   // Start the progress bar
@@ -84,7 +84,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
 
     // @TODO: This works for KP but do we want to make it generic?
     $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
-    $marker_name = $variant_name . '_' . $options['marker_type'];
+    $marker_name = $variant_name . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
 
     // Now create a variant and marker in Chado, and link it to a chromosome.
     // Variant.
@@ -251,5 +251,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
     print($progress);
   }
-  drush_print("\nCOMPLETE!");
+  // If we got here without returning an error then we completed successfully!
+  drush_log("Loading Complete.", "success");
+
+  // Close the file.
+  fclose($VCFfile);
 }
