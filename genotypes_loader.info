@@ -1,4 +1,7 @@
 name = Genotypes Loader
 description = Loads genotypes from various formats into Knowpulse
 core = 7.x
-package = KnowPulse
+package = Tripal Extensions
+
+dependencies[] = tripal_core
+dependencies[] = nd_genotypes

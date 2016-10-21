@@ -39,7 +39,7 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
   $FILE = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
 
   // Save the header
-  $header = fgetcsv($file, 0, "\t");
+  $header = fgetcsv($FILE, 0, "\t");
 
   // Select variables for the helper functions.
   $select_only = 0;
@@ -60,7 +60,7 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
   // For each line except for the header, process sample, variant, marker and genotype
   while(!feof($FILE)) {
 
-    $current_line = fgetcsv($file, 0, "\t");
+    $current_line = fgetcsv($FILE, 0, "\t");
     // If the line doesn't have at least 2 columns (such as a comment or empty line) then skip it.
     if (empty($current_line)) continue;
 

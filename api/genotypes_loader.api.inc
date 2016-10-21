@@ -299,7 +299,6 @@ function genotypes_loader_print_progress($step_count, $num_steps, $message = "")
     // Output percentage then shift cursor to beginning of the line
     $output .= '] ' . $percent_complete . ' %  ' . $message . "\r";
 
-    sleep(1);
     return $output;
 }
 

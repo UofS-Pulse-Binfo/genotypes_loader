@@ -10,28 +10,20 @@
  */
 function genotypes_loader_drush_command() {
 
-  $items['load-genotypes'] = array(
-    'description' => 'Takes a VCF file and associates it with a project in KnowPulse, then imports marker, variant and genotype data into KnowPulse.',
-    'aliases' => array('load-vcf'),
-    'arguments' => array(
-      'input_file' => 'The filename of the VCF file for upload',
-      'germplasm_mapping' => 'The filename of a tab-delimited file specifying the sample name in the VCF, the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID',
-    ),
-  );
-
   // Make this one drush command for all 3 file formats?
-  $items['load-genotype-matrix'] = array(
+  $items['load-genotypes'] = array(
     'description' => 'Takes a genotype matrix and associates it with a project in Knowpulse, and stores marker, variant and genotype data.',
-    'aliases' => array('load-matrix'),
+    'aliases' => array('load-geno'),
     'arguments' => array(
-      'input_file' => 'The filename of the matrix file for upload',
+      'input-file' => 'The filename of the matrix file for upload',
+      'sample-file' => 'The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder.',
     ),
     'options' => array(
       'organism' => 'The organism to which the genotypes are associated with.',
-      'variant_type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).',
-      'marker_type' => 'The Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
-      'project_name' => 'All genotypes will be grouped via a project to allow users to specify a particular dataset.',
-      'nd_geolocation' => 'A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.',
+      'variant-type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).',
+      'marker-type' => 'The Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
+      'project-name' => 'All genotypes will be grouped via a project to allow users to specify a particular dataset.',
+      'ndgeolocation' => 'A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your ndgeolocation.',
     ),
   );
 
@@ -42,25 +34,68 @@ function genotypes_loader_drush_command() {
  * Our drush callback function
  * @TODO: should be prefixed with "drush_"
  */
-function genotypes_loader_load_genotypes($input_file = NULL, $germplasm_mapping = NULL) {
+function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL) {
 
-  // Collect options from the user.
-  // Organism
-  $organism = drush_get_option('organism');
-  if (!$organism) {
-    $sql = "SELECT * FROM {organism} ORDER BY genus, species";
-    $org_rset = chado_query($sql);
-    $organisms = array();
-    while ($organism = $org_rset->fetchObject()) {
-      $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
+  // ------------------------
+  // FILE VALIDATION
+  // ------------------------
+  // Check that both files exist
+  $input_file = trim($input_file);
+  if (!$input_file) { return drush_set_error(dt('ERROR: No input file specified. See: \'drush help load-genotypes\'')); }
+  $sample_file = trim($sample_file);
+  if (!$sample_file) { return drush_set_error(dt('ERROR: No sample mapping specified. See: \'drush help load-genotypes\'')); }
+
+  // Ensure we can open the files. If not, first check the current directory and
+  // attach the full path and try again.
+  if (!file_exists($input_file) || !file_exists($sample_file)) {
+    $current_directory = drush_cwd();
+    $input_file = $current_directory . "/" . $input_file;
+    $sample_file = $current_directory . "/" . $sample_file;
+    // Test each file again, return error if we still can't find it.
+    foreach (array($input_file, $sample_file) as $file) {
+      if (!file_exists($file)) {
+        return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.",
+        array('@file' => $file)));
+      }
     }
-    $organism = drush_choice($organisms, dt('Please select which organism the genotypes are associated with.'));
-  } else {
-    // @TODO: Look up the organism ID if it organism name was provided as an option
   }
 
-  // Variant type
-  $variant_type = drush_get_option('variant_type');
+  // ---------------------------
+  // COLLECT USER OPTIONS
+  // ---------------------------
+
+  // ----- Organism -----
+  // @TODO: Handle multiple organisms in one loading job?
+  // Set up our array of all possible organisms in the database.
+  $sql = "SELECT * FROM {organism} ORDER BY genus, species";
+  $org_rset = chado_query($sql);
+  $organisms = array();
+  while ($organism = $org_rset->fetchObject()) {
+    // Start building our array of organisms
+    $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
+  }
+  // See if the user has provided organism name as an option, and split into genus and species.
+  $organism_name = drush_get_option('organism', NULL);
+  if ($organism_name) {
+    foreach ($organisms as $o_id => $organism) {
+      if (strpos($organism, $organism_name) !== false) {
+        $organism_id = $o_id;
+        break;
+      }
+    }
+    // Check if there was no match
+    if (!$organism_id) {
+      drush_log("Could not find a record in the database for '" . $organism_name . "'", 'warning');
+      $organism_id = drush_choice($organisms, dt('Please select an organism from the following options:'));
+    }
+  } else {
+    // Either we didn't find the organism that the user provided as an option, or no option was given. So
+    // give them a listing to choose from using the array we just built.
+    $organism_id = drush_choice($organisms, dt('Please select which organism the genotypes are associated with.'));
+  }
+
+  // ----- Variant type -----
+  $variant_type = drush_get_option('variant-type', NULL);
   if (!$variant_type) {
     //$values = array('name' => 'sequence');
     //$cv = chado_select_record('cv', array('cv_id'), $values);
@@ -68,74 +103,64 @@ function genotypes_loader_load_genotypes($input_file = NULL, $germplasm_mapping 
     $variant_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).'));
   }
 
-  // Marker type
-  $marker_type = drush_get_option('marker_type');
+  // ----- Marker type -----
+  $marker_type = drush_get_option('marker-type', NULL);
   if (!$marker_type) {
     $marker_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).'));
   }
 
-  // Project
+  // ----- Project -----
   // @TODO: Should this be retrieved using drush_choice instead?
-  $project_name = drush_get_option('project_name');
+  $project_name = drush_get_option('project-name', NULL);
   if (!$project_name) {
     $project_name = drush_prompt(dt('Please provide the name of a project in which all genotypes will be grouped to allow users to specify a particular dataset.'));
   }
 
-  // If the storage method is ND experiment, then grab this option.
-  // ND Geolocation
-  $nd_geolocation = drush_get_option('nd_geolocation');
+  // IF the storage method is ND experiment, then grab this option.
+  // ----- ND Geolocation -----
+  $nd_geolocation = drush_get_option('ndgeolocation', NULL);
   if (!$nd_geolocation) {
     $nd_geolocation = drush_prompt(dt('Please provide a meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.'));
   }
 
   // @TODO: Collect the storage method here or check for it elsewhere??
-  $storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
+  //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
+  $storage_method = 'genotype_call';
 
-
-  print_r("Organism : $organisms[$organism]\n");
+  print_r("Organism: $organisms[$organism_id]\n");
   print_r("Variant type: $variant_type\n");
   print_r("Marker type: $marker_type\n");
   print_r("Project: $project_name\n");
   print_r("ND_geolocation: $nd_geolocation\n");
 
   $options = array(
-    'organism_id' => $organisms[$organism],
+    'organism_id' => $organism_id,
     'variant_type' => $variant_type,
     'feature_type_of_marker' => 'genetic_marker',
     'marker_type' => $marker_type,
     'project_name' => $project_name,
     'storage_method' => $storage_method,
-    'insert_samples' => '0',
-    'insert_germplasm' => '0',
+    'insert_samples' => '2',
+    'insert_germplasm' => '2',
     'insert_markers' => '2',
     'insert_variants' => '2',
   );
   if (isset($options['nd_geolocation'])) $options['nd_geolocation'] = $nd_geolocation;
 
   // @TODO: Will need to acquire the DB-specific options somehow...
+  genotypes_loader_load_genotypes($input_file, $sample_file, $options);
+
 }
 
 /**
  * Callback for load-genotypes command
  */
-function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL) {
+function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL, $options) {
 
+  // ------------------------
+  // DATA RETRIEVAL
+  // ------------------------
   drush_print("Begin validating options and samples...");
-
-  // TEST INPUTS. @TODO: Get these as options
-  $options = array(
-    'organism_id' => '4',
-    'variant_type' => 'SNP',
-    'feature_type_of_marker' => 'genetic_marker',
-    'marker_type' => 'GBS',
-    'project_name' => 'AGILE: Application of Genomic Innovation in the Lentil Economy',
-    'storage_method' => 'genotype_call',
-    'insert_samples' => '2',
-    'insert_germplasm' => '2',
-    'insert_markers' => '2',
-    'insert_variants' => '2',
-    'nd_geolocation' => 'University of Saskatchewan',
-  );
 
   // Inform the user which data loading method is being used.
   $storage_method = array(
@@ -149,14 +174,17 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   // Check the custom table is there if using Method #2: Genotype Call
   // @Lacey: This code was originally from the genotype matrix loader. Is this sufficient? (looks like it
   // just creates the custom table?)
-  /*
   if ($options['storage_method'] == 'genotype_call') {
     chado_create_custom_table(
       'genotype_call',
       nd_genotypes_genotype_call_schema_template()
     );
   }
-  */
+
+  // Set some variables to abstract mode for genotypes_loader_helper_add_record_with_mode().
+  $select_only = 0;
+  $insert_only = 1;
+  $both = 2;
 
   $db_options = array(
     1 => 'Insert Only',
@@ -164,17 +192,13 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     2 => 'Insert And Select',
   );
 
-  // ------------------------
-  // DATA RETRIEVAL
-  // ------------------------
-
   // ----- TYPE IDs -----
   $terms = array(
-    array('name' => 'DNA', 'cv_name' => 'stock_types'),
-    array('name' => 'Accession', 'cv_name' => 'stock_types'),
-    array('name' => 'Individual', 'cv_name' => 'stock_types'),
-    array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationships'),
-    array('name' => 'is_marker_of', 'cv_name' => 'relationship'),
+    array('name' => 'DNA', 'cv_name' => 'stock_type'),
+    array('name' => 'Accession', 'cv_name' => 'stock_type'),
+    array('name' => 'Individual', 'cv_name' => 'stock_type'),
+    array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
+    array('name' => 'is_marker_of', 'cv_name' => 'stock_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
     array('name' => 'marker_type', 'cv_name' => 'feature_property'),
@@ -221,31 +245,8 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     $options['project_id'] = $project_id;
   }
 
-  // ------------------------
-  // FILE VALIDATION
-  // ------------------------
-  // Check that both files exist
-  $input_file = trim($input_file);
-  if (!$input_file) { return drush_set_error(dt('ERROR: No input file specified. See: \'drush help load-genotypes\'')); }
-  $sample_file = trim($sample_file);
-  if (!$sample_file) { return drush_set_error(dt('ERROR: No sample mapping specified. See: \'drush help load-genotypes\'')); }
-
-  // Ensure we can open the files. If not, first check the current directory and
-  // attach the full path and try again.
-  if (!file_exists($input_file) || !file_exists($sample_file)) {
-    $current_directory = drush_cwd();
-    $input_file = $current_directory . "/" . $input_file;
-    $sample_file = $current_directory . "/" . $sample_file;
-    // Test each file again, return error if we still can't find it.
-    foreach (array($input_file, $sample_file) as $file) {
-      if (!file_exists($file)) {
-        return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.",
-        array('@file' => $file)));
-      }
-    }
-  }
-
   drush_print('  Checking for samples [' . $db_options[ $options['insert_samples'] ] . '] and for germplasm [' . $db_options[ $options['insert_germplasm'] ] . '] in the database...');
+
   // ----- SAMPLES MAPPING -----
   // Open the sample mapping file and ensure we have the expected number of columns.
   // Save it as an associative array and close it
@@ -256,15 +257,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     return drush_set_error(dt("ERROR: Unexpected number of columns of $num_columns in '@file'\nSee: 'drush help load-genotypes''",
         array('@file' => $sample_file)));
   }
-  /*
-  *  The resulting samples "hash" should look something like:
-  *  'ABC' => (
-  *    'sample_name' => 'ABC Extraction',
-  *    'sample_accession' => '123',
-  *    'germplasm_name' => 'ABC',
-  *    'germplasm_extraction' => '112233'
-  *  );
-  */
+
   while(!feof($SAMPLE_MAP)) {
     $current_line = fgetcsv($SAMPLE_MAP, 0, "\t");
     if (empty($current_line)) continue;

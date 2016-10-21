@@ -211,12 +211,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
         // @TODO: Handle indels!
         if ( strlen($RefAlt_alleles[$call]) > 2 ) {
           drush_log("Found an indel for marker: " . $marker_name, 'warning');
-          // @TODO: Consider a different approach since a VCF file either has no indels or potentially very, very many.
-          if (drush_confirm('The genotypes loader currently doesn\'t handle indels. Continue anyway?')) {
-            continue;
-          } else {
-            drush_user_abort();
-          }
+          continue;
         }
       }
 
