@@ -102,3 +102,18 @@ Genotypes loaded by this module can be stored in chado in via one of the followi
 | 3      | Stock Genotype | No            | No                 | 10       | A good alternative if you don't want to use custom tables but have a lot of data. Similar efficiency to Method #2 but less support for meta-data. |
 
 For more information see [ND Genotypes: How to Store your Data](https://github.com/UofS-Pulse-Binfo/nd_genotypes/wiki/How-to-Store-your-Data).
+
+This module currently expects the following controlled vocabulary terms already exist in chado:
+
+| Term Name           | Controlled Vocabulary |
+|---------------------|-----------------------|
+| DNA                 |  stock_type           |
+| Accession           | stock_type            |
+| Individual          | stock_type            |
+| is_extracted_from   | stock_relationship    |
+| is_marker_of        | stock_relationship    |
+| *Indicated by user* | sequence              |
+| *Indicated by user* | sequence              |
+| marker_type         | feature_property      |
+
+In the future, you will be able to configure these terms through a settings form under module configuration.
