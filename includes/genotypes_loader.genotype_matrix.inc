@@ -153,10 +153,13 @@ function genotypes_loader_load_matrix($input_file, $options, $types, $job_id = 0
       // have already been handled above.
       if ($k <= 2) continue;
 
+      // If $allele is empty, it means we have missing data for this genotype.
+      // Thus, skip this particular genotype and move onto the next.
+      // @TODO: Should also check for non-nucleotides? Something like N/A?
+      if (!$allele) continue;
+
       // Get the source name so that we can find the unique stock name and ID
       $source_name = $header[$k];
-
-      //print "Inserting genotype " . $allele . " for sample " . $source_name . "\n";
 
       // We are going to use a helper function for this portion since it depends heavily
       // on the storage method chosen. As such, compile an array of fields to pass in

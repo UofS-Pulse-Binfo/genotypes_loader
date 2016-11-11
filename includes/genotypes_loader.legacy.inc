@@ -80,6 +80,10 @@ function genotypes_loader_load_legacy($input_file = NULL, $options, $types) {
     $allele = $current_line[4];
 
     //print "Marker name: " . $marker_name . "\nVariant name: " . $variant_name . "\nBackbone: " . $backbone_name . "\nFmin: " . $fmin . "\nFmax: " . $fmax . "\nSample name: " . $source_name . "\nGenotype Call: " . $allele . "\n";
+    // If $allele is empty, it means we have missing data for this genotype (though really, given each
+    // genotype is on its own line, this shouldn't happen. But you never know...)
+    // Thus, skip this particular genotype and move onto the next.
+    if (!$allele) continue;
 
     // ------------------------
     // INSERT MARKER/VARIANT

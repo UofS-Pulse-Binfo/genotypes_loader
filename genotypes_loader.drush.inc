@@ -10,13 +10,12 @@
  */
 function genotypes_loader_drush_command() {
 
-  // Make this one drush command for all 3 file formats?
   $items['load-genotypes'] = array(
-    'description' => 'Takes a genotype matrix and associates it with a project in Knowpulse, and stores marker, variant and genotype data.',
+    'description' => 'A loader for genotypic data in either a flat file, matrix or VCF format.',
     'aliases' => array('load-geno'),
     'arguments' => array(
-      'input-file' => 'The filename of the matrix file for upload',
-      'sample-file' => 'The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder.',
+      'input-file' => 'The filename of the genotypic file for upload',
+      'sample-file' => 'The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder for an example.',
     ),
     'options' => array(
       'organism' => 'The organism to which the genotypes are associated with.',
@@ -32,7 +31,6 @@ function genotypes_loader_drush_command() {
 
 /**
  * Our drush callback function
- * @TODO: should be prefixed with "drush_"
  */
 function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL) {
 
@@ -65,7 +63,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   // ---------------------------
 
   // ----- Organism -----
-  // @TODO: Handle multiple organisms in one loading job?
+  // @TODO: Allow multiple organisms
   // Set up our array of all possible organisms in the database.
   $sql = "SELECT * FROM {organism} ORDER BY genus, species";
   $org_rset = chado_query($sql);
@@ -116,38 +114,36 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     $project_name = drush_prompt(dt('Please provide the name of a project in which all genotypes will be grouped to allow users to specify a particular dataset.'));
   }
 
-  // IF the storage method is ND experiment, then grab this option.
+  // If the storage method is ND experiment, then grab this option.
   // ----- ND Geolocation -----
   $nd_geolocation = drush_get_option('ndgeolocation', NULL);
   if (!$nd_geolocation) {
     $nd_geolocation = drush_prompt(dt('Please provide a meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.'));
   }
 
-  // @TODO: Collect the storage method here or check for it elsewhere??
+  // @TODO: Collect the following variables through a settings form
   //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
   $storage_method = 'genotype_call';
-
-  print_r("Organism: $organisms[$organism_id]\n");
-  print_r("Variant type: $variant_type\n");
-  print_r("Marker type: $marker_type\n");
-  print_r("Project: $project_name\n");
-  print_r("ND_geolocation: $nd_geolocation\n");
+  $feature_type_of_marker = 'genetic_marker';
+  $insert_samples = '2';
+  $insert_germplasm = '2';
+  $insert_markers = '2';
+  $insert_variants = '2';
 
   $options = array(
     'organism_id' => $organism_id,
     'variant_type' => $variant_type,
-    'feature_type_of_marker' => 'genetic_marker',
+    'feature_type_of_marker' => $feature_type_of_marker,
     'marker_type' => $marker_type,
     'project_name' => $project_name,
     'storage_method' => $storage_method,
-    'insert_samples' => '2',
-    'insert_germplasm' => '2',
-    'insert_markers' => '2',
-    'insert_variants' => '2',
+    'insert_samples' => $insert_samples,
+    'insert_germplasm' => $insert_germplasm,
+    'insert_markers' => $insert_markers,
+    'insert_variants' => $insert_variants,
   );
   if (isset($options['nd_geolocation'])) $options['nd_geolocation'] = $nd_geolocation;
 
-  // @TODO: Will need to acquire the DB-specific options somehow...
   genotypes_loader_load_genotypes($input_file, $sample_file, $options);
 
 }
@@ -193,6 +189,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   );
 
   // ----- TYPE IDs -----
+  // @TODO: Set these through a settings form
   $terms = array(
     array('name' => 'DNA', 'cv_name' => 'stock_type'),
     array('name' => 'Accession', 'cv_name' => 'stock_type'),
@@ -213,7 +210,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         array('@type' => $term)));
     }
   }
-
   print_r($types);
 
   // ----- ORGANISM NAME -----
