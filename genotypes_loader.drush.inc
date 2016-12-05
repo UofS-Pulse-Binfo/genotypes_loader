@@ -20,7 +20,7 @@ function genotypes_loader_drush_command() {
     'options' => array(
       'organism' => 'The organism to which the genotypes are associated with.',
       'variant-type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).',
-      'marker-type' => 'The Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
+      'marker-type' => 'A free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
       'project-name' => 'All genotypes will be grouped via a project to allow users to specify a particular dataset.',
       'ndgeolocation' => 'A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your ndgeolocation.',
     ),
@@ -104,7 +104,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   // ----- Marker type -----
   $marker_type = drush_get_option('marker-type', NULL);
   if (!$marker_type) {
-    $marker_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).'));
+    $marker_type = drush_prompt(dt('Please enter a free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).'));
   }
 
   // ----- Project -----
