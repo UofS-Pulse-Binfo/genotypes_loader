@@ -18,7 +18,7 @@ function genotypes_loader_drush_command() {
       'sample-file' => 'The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder for an example.',
     ),
     'options' => array(
-      'organism' => 'The organism to which the genotypes are associated with.',
+      'organism' => 'The organism of the samples in your samples file. If your samples consist of multiple organisms, please fill in the organism in the 7th column of the samples file. The organism name should be formatted as "Genus species". For example, for cultivated lentil: Lens culinaris',
       'variant-type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).',
       'marker-type' => 'A free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
       'project-name' => 'All genotypes will be grouped via a project to allow users to specify a particular dataset.',
@@ -52,8 +52,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     // Test each file again, return error if we still can't find it.
     foreach (array($input_file, $sample_file) as $file) {
       if (!file_exists($file)) {
-        return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.",
-        array('@file' => $file)));
+        return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.", array('@file' => $file)));
       }
     }
   }
@@ -64,6 +63,7 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
 
   // ----- Organism -----
   // @TODO: Allow multiple organisms
+
   // Set up our array of all possible organisms in the database.
   $sql = "SELECT * FROM {organism} ORDER BY genus, species";
   $org_rset = chado_query($sql);
@@ -84,12 +84,20 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     // Check if there was no match
     if (!$organism_id) {
       drush_log("Could not find a record in the database for '" . $organism_name . "'", 'warning');
-      $organism_id = drush_choice($organisms, dt('Please select an organism from the following options:'));
+      $organism_id = drush_choice($organisms, dt(
+'Please select an organism for your samples from the following options.
+If your samples are from multiple organisms, it is recommended that you
+add organisms to each sample in the samples file. You can choose the most
+prevalent organism here, and anything in the file will take precedence over it.:'));
     }
   } else {
     // Either we didn't find the organism that the user provided as an option, or no option was given. So
     // give them a listing to choose from using the array we just built.
-    $organism_id = drush_choice($organisms, dt('Please select which organism the genotypes are associated with.'));
+    $organism_id = drush_choice($organisms, dt(
+'Please select an organism for your samples from the following options.
+If your samples are from multiple organisms, it is recommended that you
+add organisms to each sample in the samples file. You can choose the most
+prevalent organism here, and anything in the file will take precedence over it.:'));
   }
 
   // ----- Variant type -----
@@ -114,12 +122,14 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     $project_name = drush_prompt(dt('Please provide the name of a project in which all genotypes will be grouped to allow users to specify a particular dataset.'));
   }
 
+  /*
   // If the storage method is ND experiment, then grab this option.
   // ----- ND Geolocation -----
   $nd_geolocation = drush_get_option('ndgeolocation', NULL);
   if (!$nd_geolocation) {
     $nd_geolocation = drush_prompt(dt('Please provide a meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your nd_geolocation.'));
   }
+  */
 
   // @TODO: Collect the following variables through a settings form
   //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
@@ -192,10 +202,10 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // @TODO: Set these through a settings form
   $terms = array(
     array('name' => 'DNA', 'cv_name' => 'stock_type'),
-    array('name' => 'Accession', 'cv_name' => 'stock_type'),
-    array('name' => 'Individual', 'cv_name' => 'stock_type'),
+    array('name' => 'Accession', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary?
+    array('name' => 'Individual', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary?
     array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
-    array('name' => 'is_marker_of', 'cv_name' => 'stock_relationship'),
+    array('name' => 'is_marker_of', 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
     array('name' => 'marker_type', 'cv_name' => 'feature_property'),
@@ -204,13 +214,14 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   $types = array();
   foreach ($terms as $d) {
     $term = $d['name'];
+    $cv_name = $d['cv_name'];
     $types[$term] = chado_query($query, array(':name' => $term, ':cv_name' => $d['cv_name']))->fetchField();
     if (!$types[$term]) {
-      return drush_set_error(dt("ERROR: Could not find type '@type' in the database.",
-        array('@type' => $term)));
+      return drush_set_error(dt("ERROR: Could not find type '@type' with vocabulary '@cv_name'.",
+        array('@type' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  print_r($types);
+  //print_r($types);
 
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
@@ -249,7 +260,8 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   $SAMPLE_MAP = fopen($sample_file, 'r') or die ("ERROR: Unable to open $sample_file!\n");
   $header = fgetcsv($SAMPLE_MAP, 0, "\t");
   $num_columns = count($header);
-  if ($num_columns != 5) {
+  // Originally I didn't negate the following if statement, creating some frustration @OnAFriday...
+  if (!(($num_columns >= 5) && ($num_columns <= 7))) {
     return drush_set_error(dt("ERROR: Unexpected number of columns of $num_columns in '@file'\nSee: 'drush help load-genotypes''",
         array('@file' => $sample_file)));
   }
@@ -264,6 +276,30 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $sample_accession = array_shift($current_line);
     $germplasm_name = array_shift($current_line);
     $germplasm_accession = array_shift($current_line);
+    // User can optionally supply a stock_type for each germplasm if they are inserting
+    if ($num_columns >= 6) {
+      $germplasm_type = array_shift($current_line);
+      if (!$types[$germplasm_type]) {
+        $types[$germplasm_type] = chado_query($query, array(':name' => $germplasm_type, ':cv_name' => $d[$germplasm_Type]))->fetchField();
+      }
+      if (!$types[$germplasm_type]) {
+        return drush_set_error(dt("ERROR: Could not find germplasm type '@type' in the database.", array('@type' => $germplasm_type)));
+      }
+    }
+    // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database
+    if ($num_columns == 7) {
+      $organism = array_shift($current_line);
+      // Separate string into genus and species
+      list($genus, $species) = explode(' ', $organism);
+      // Get the organism ID
+      $organism_id = chado_select_record('organism', 'organism_id', array('genus' => $genus, 'species' => $species));
+      if (!$organism_id) {
+        return drush_set_error(dt("ERROR: Could not find an organism \"@organism_name\" in the database.",
+          array('@organism_name' => $organism)));
+      } else {
+        drush_print(dt("  Found organism \"@organism\" in the database.", array('@organism' => $organism)));
+      }
+    }
 
     // ----------------------------
     // LOOKUP/INSERT SAMPLES
@@ -278,11 +314,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- STOCK -----
     $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
       'uniquename' => $sample_accession,
-      'organism_id' => $options['organism_id'],
       // @ASSUMPTION: The original stock for which the marker is associated to is of type DNA
       'type_id' => $types['DNA'],
     ), array(
       'name' => $sample_name,
+      'organism_id' => $options['organism_id'],
     ));
     if (!$stock_id) { return FALSE; }
 //    drush_print("Found stock ID: $stock_id for sample: $sample_name");
@@ -290,12 +326,12 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- GERMPLASM -----
     $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
       'uniquename' => $germplasm_accession,
-      'organism_id' => $options['organism_id'],
     ), array(
       // @ASSUMPTION: If a germplasm already exists, we don't assume its type, but we do require
       //              a type if we're inserting. So here we are assuming it is of type "Individual".
-      'type_id' => $types['Individual'],
+      'type_id' => $types[$germplasm_type],
       'name' => $germplasm_name,
+      'organism_id' => $options['organism_id'],
     ));
     if (!$germplasm_id) { return FALSE; }
 //    drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");

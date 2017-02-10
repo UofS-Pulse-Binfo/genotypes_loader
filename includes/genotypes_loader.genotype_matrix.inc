@@ -159,6 +159,7 @@ function genotypes_loader_load_matrix($input_file, $options, $types, $job_id = 0
       if (!$allele) continue;
 
       // Get the source name so that we can find the unique stock name and ID
+      // @TODO: Check the source name matches a source name in the samples array!
       $source_name = $header[$k];
 
       // We are going to use a helper function for this portion since it depends heavily
