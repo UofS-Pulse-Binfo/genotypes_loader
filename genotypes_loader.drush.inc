@@ -35,7 +35,7 @@ function genotypes_loader_drush_command() {
 function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL) {
 
   // ------------------------
-  // FILE VALIDATION
+  //      FILE VALIDATION
   // ------------------------
   // Check that both files exist
   $input_file = trim($input_file);
@@ -58,12 +58,10 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   }
 
   // ---------------------------
-  // COLLECT USER OPTIONS
+  //    COLLECT USER OPTIONS
   // ---------------------------
 
   // ----- Organism -----
-  // @TODO: Allow multiple organisms
-
   // Set up our array of all possible organisms in the database.
   $sql = "SELECT * FROM {organism} ORDER BY genus, species";
   $org_rset = chado_query($sql);
@@ -164,7 +162,7 @@ prevalent organism here, and anything in the file will take precedence over it.:
 function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL, $options) {
 
   // ------------------------
-  // DATA RETRIEVAL
+  //      DATA RETRIEVAL
   // ------------------------
   drush_print("Begin validating options and samples...");
 
@@ -201,27 +199,29 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // ----- TYPE IDs -----
   // @TODO: Set these through a settings form
   $terms = array(
-    array('name' => 'DNA', 'cv_name' => 'stock_type'),
-    array('name' => 'Accession', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary?
-    array('name' => 'Individual', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary?
+    array('name' => 'DNA', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
+    array('name' => 'Accession', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? N
+    array('name' => 'Individual', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? N
     array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
     array('name' => 'is_marker_of', 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
     array('name' => 'marker_type', 'cv_name' => 'feature_property'),
   );
-  $query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
+  $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   $types = array();
   foreach ($terms as $d) {
     $term = $d['name'];
     $cv_name = $d['cv_name'];
-    $types[$term] = chado_query($query, array(':name' => $term, ':cv_name' => $d['cv_name']))->fetchField();
+    $types[$term] = chado_query($type_query, array(':name' => $term, ':cv_name' => $d['cv_name']))->fetchField();
     if (!$types[$term]) {
       return drush_set_error(dt("ERROR: Could not find type '@type' with vocabulary '@cv_name'.",
         array('@type' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  //print_r($types);
+  // Look up the default vocabulary for stock types
+  $stock_type_cv = tripal_get_default_cv('stock', 'type_id');
+  //print_r($stock_type_cv);
 
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
@@ -254,7 +254,9 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
 
   drush_print('  Checking for samples [' . $db_options[ $options['insert_samples'] ] . '] and for germplasm [' . $db_options[ $options['insert_germplasm'] ] . '] in the database...');
 
-  // ----- SAMPLES MAPPING -----
+  // ---------------------------
+  //       SAMPLES MAPPING
+  // ---------------------------
   // Open the sample mapping file and ensure we have the expected number of columns.
   // Save it as an associative array and close it
   $SAMPLE_MAP = fopen($sample_file, 'r') or die ("ERROR: Unable to open $sample_file!\n");
@@ -280,29 +282,31 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
       if (!$types[$germplasm_type]) {
-        $types[$germplasm_type] = chado_query($query, array(':name' => $germplasm_type, ':cv_name' => $d[$germplasm_Type]))->fetchField();
+        // Query to retrieve type IDs was set above:
+        // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $stock_type_cv['name']))->fetchField();
       }
       if (!$types[$germplasm_type]) {
-        return drush_set_error(dt("ERROR: Could not find germplasm type '@type' in the database.", array('@type' => $germplasm_type)));
+        return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
       }
     }
     // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database
+    // We need to allow spaces in the genus and species, so use a custom query to check that what the user
+    // input matches what is in the database.
     if ($num_columns == 7) {
       $organism = array_shift($current_line);
       // Separate string into genus and species
       list($genus, $species) = explode(' ', $organism);
       // Get the organism ID
-      $organism_id = chado_select_record('organism', 'organism_id', array('genus' => $genus, 'species' => $species));
+      $organism_id = chado_select_record('organism', array('organism_id'), array('genus' => $genus, 'species' => $species));
       if (!$organism_id) {
         return drush_set_error(dt("ERROR: Could not find an organism \"@organism_name\" in the database.",
           array('@organism_name' => $organism)));
-      } else {
-        drush_print(dt("  Found organism \"@organism\" in the database.", array('@organism' => $organism)));
       }
     }
 
     // ----------------------------
-    // LOOKUP/INSERT SAMPLES
+    //    LOOKUP/INSERT SAMPLES
     // ----------------------------
     /* @ASSUMPTION: Samples in the samples file get checked for or inserted regardless if they
      *              appear in the input file containing genotypic calls. This could be useful if
@@ -384,6 +388,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   }
 
   // ----- CALL THE APPROPRIATE LOADER -----
+  /**
   switch ($file_format) {
     case "vcf":
       drush_print("  Detected VCF file format. \nProceeding to load genotypes...");
@@ -400,4 +405,5 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     default:
       return drush_set_error(dt("ERROR: Could not determine the format for '@file'. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.", array('@file' => $input_file)));
   }
+  */
 }
