@@ -388,7 +388,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   }
 
   // ----- CALL THE APPROPRIATE LOADER -----
-  /**
   switch ($file_format) {
     case "vcf":
       drush_print("  Detected VCF file format. \nProceeding to load genotypes...");
@@ -405,5 +404,4 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     default:
       return drush_set_error(dt("ERROR: Could not determine the format for '@file'. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.", array('@file' => $input_file)));
   }
-  */
 }
