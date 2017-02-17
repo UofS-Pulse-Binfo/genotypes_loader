@@ -200,8 +200,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // @TODO: Set these through a settings form
   $terms = array(
     array('name' => 'DNA', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
-    array('name' => 'Accession', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? N
-    array('name' => 'Individual', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? N
     array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
     array('name' => 'is_marker_of', 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
@@ -284,7 +282,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $stock_type_cv['name']))->fetchField();
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $stock_type_cv->name))->fetchField();
       }
       if (!$types[$germplasm_type]) {
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
