@@ -220,6 +220,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // Look up the default vocabulary for stock types
   $stock_type_cv = tripal_get_default_cv('stock', 'type_id');
   //print_r($stock_type_cv);
+  print_r($types);
 
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
@@ -288,15 +289,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
       }
     }
-    // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database
+    // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database.
     // We need to allow spaces in the genus and species, so use a custom query to check that what the user
     // input matches what is in the database.
     if ($num_columns == 7) {
       $organism = array_shift($current_line);
-      // Separate string into genus and species
-      list($genus, $species) = explode(' ', $organism);
-      // Get the organism ID
-      $organism_id = chado_select_record('organism', array('organism_id'), array('genus' => $genus, 'species' => $species));
+      $organism_query = "SELECT organism_id FROM {organism} WHERE genus||' '||species=:user_input";
+      $organism_id = chado_query($organism_query, array(':user_input' => $organism))->fetchField();
       if (!$organism_id) {
         return drush_set_error(dt("ERROR: Could not find an organism \"@organism_name\" in the database.",
           array('@organism_name' => $organism)));
@@ -322,7 +321,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'name' => $sample_name,
       'organism_id' => $options['organism_id'],
     ));
-    if (!$stock_id) { return FALSE; }
+    if (!$stock_id) { return drush_set_error(dt('ERROR: Could not find a stock ID for @stock', array('@stock' => $sample_accession))); }
 //    drush_print("Found stock ID: $stock_id for sample: $sample_name");
 
     // ----- GERMPLASM -----
@@ -335,7 +334,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'name' => $germplasm_name,
       'organism_id' => $options['organism_id'],
     ));
-    if (!$germplasm_id) { return FALSE; }
+    if (!$germplasm_id) { return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession))); }
 //    drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
 
     // ----- GERMPLASM TO SAMPLE LINK -----
@@ -344,10 +343,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'type_id' => $types['is_extracted_from'],
       'object_id' => $germplasm_id,
     ));
-    if (!$status) { return FALSE; }
+    if (!$status) { return drush_set_error(dt('ERROR: Could not link germplasm @germplasm to stock @sample', array(
+      '@germplasm' => $germplasm_name,
+      '@sample' => $sample_name)));
+    }
 //    drush_print("Linked stock ID: $stock_id to stock ID: $germplasm_id");
 
-    // Save the sample name (in Chado) and its stock id in the options array
+    // Save the sample name (according to Chado) and its stock id in the options array
     $options['sample_list'][$source_name]['sample_name'] = $sample_name;
     $options['sample_list'][$source_name]['sample_stock_id'] = $stock_id;
   }

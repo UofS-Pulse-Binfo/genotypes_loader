@@ -22,17 +22,23 @@
  * @return
  *   The value of the primary key for the inserted/selected record or FALSE if failed.
  */
-function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
 
+ /**
+  *  Give the different errors that are possible separate error codes. Also allow a parameter to be given to
+  *  either "handle errors" or not- this way, if we see a certain error (such as not unique), we can handle it
+  *  from outside of the function.
+  *
+  *  Also - don't forget to refer to Lacey's new helper function on Github. This function needs to evolve
+  *  regardless! Whether or not we go with copying from a file remains to be seen...
+  */
+
+function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
   // the name of the primary key.
   $pkey = $table . '_id';
-
   // First we select the record to see if it already exists.
   $record = chado_select_record($table, array($pkey), $select_values);
-
   // If we want to insert values, we can merge our values to have all the information we need
   $values = array_merge($select_values, $insert_values);
-
   // If it exists and the mode is 1 (Insert Only) then return an error to drush.
   if (sizeof($record) == 1) {
     if ($mode == 1) {
@@ -59,7 +65,6 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
   else {
     return drush_set_error(dt('Record "@record_type" doesn\'t already exist but you chose to only select (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
   }
-
 }
 
 /**

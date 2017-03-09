@@ -28,6 +28,9 @@
  *        one of 0: Select Only, 1: Insert Only, 2: Insert & Select.
  *     - nd_geolocation: nd_geolocation.description; only if the ND Experiment storage
  *        method is chosen.
+ * @param $types
+ *  An associative array of types and their type IDs in Chado which are required by the loader,
+ *  such as types of features and stocks.
  */
 
 function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
@@ -49,11 +52,24 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   $insert_only = 1;
   $both = 2;
 
-  // ------------------------
-  // PROCESSING VCF FILE
-  // ------------------------
-  $total_lines = intval(exec("grep -vc '^#' $input_file"));
-  drush_print("Number of lines to process: " . $total_lines);
+  // -------------------------
+  //    PROCESSING VCF FILE
+  // -------------------------
+
+  // Get all the sample names in the header in order to confirm that they match what was provided
+  // in the samples file
+  $geno_file_sample_names = array_slice($header, 10);
+  foreach ($geno_file_sample_names as $sample) {
+    if (!$options['sample_list'][$sample]) {
+      return drush_set_error(dt('ERROR: Sample @sample_name in your genotypes file does not match any samples provided in your samples file.', array('@sample_name' => $sample)));
+    }
+  }
+
+  $total_lines = intval(exec("grep -vc '^#' " . escapeshellarg($input_file)));
+  if ($total_lines) { drush_print("Number of lines to process: $total_lines"); }
+  else {
+    return drush_set_error(dt('ERROR: Unable to count the number of lines in file @input_file', array('@input_file' => $input_file)));
+  }
   // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
   $num_lines = 0;
   // Start the progress bar
@@ -75,60 +91,67 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     // Pull out the backbone (chromosome, scaffold, etc...) and check that it exists.
     // Since a VCF file is the result of alignments to a genome that should already be in the database,
     // we assume that the "chromosomes" already exist, so let's select and store the feature id ahead of time.
+    // ----- Chromosome -----
     $chromosome_id = genotypes_loader_helper_add_record_with_mode('Chromosome', 'feature', $select_only, array(
         'name' => $marker['#CHROM'],
         'uniquename' => $marker['#CHROM'],
         'organism_id' => $options['organism_id'],
     ));
-    if (!$chromosome_id) { return FALSE; }
+    if (!$chromosome_id) { return drush_set_error(dt('ERROR: Could not find a chromosome ID for @backbone', array('@backbone' => $backbone_name))); }
 
     // @TODO: This works for KP but do we want to make it generic?
     $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
     $marker_name = $variant_name . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
 
     // Now create a variant and marker in Chado, and link it to a chromosome.
-    // Variant.
+    // ----- Variant -----
     $variant_id = genotypes_loader_helper_add_record_with_mode('Variant', 'feature', $options['insert_variants'], array(
       'name' => $variant_name,
       'uniquename' => $variant_name,
       'organism_id' => $options['organism_id'],
       'type_id' => $types[ $options['variant_type'] ]
     ));
-    if (!$variant_id) { return FALSE; }
+    if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
 
-    // Marker.
+    // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
       'uniquename' => $marker_name,
       'organism_id' => $options['organism_id'],
       'type_id' => $types[ $options['feature_type_of_marker'] ]
     ));
-    if (!$marker_id) { return FALSE; }
+    if (!$marker_id) { return drush_set_error(dt('ERROR: Could not find a marker ID for @marker', array('@marker' => $marker_name))); }
 
-    // Marker Type.
+    // ----- Marker Type -----
     $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
       'feature_id' => $marker_id,
       'type_id' => $types['marker_type'],
       'value' => $options['marker_type'],
     ));
-    if (!$marker_type_prop_id) { return FALSE; }
+    if (!$marker_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name))); }
 
-    // Link Variant to marker.
+    // ----- Link Variant to Marker -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
       'subject_id' => $marker_id,
       'type_id' => $types['is_marker_of'],
       'object_id' => $variant_id,
     ));
-    if (!$status) { return FALSE; }
+    if (!$status) { return drush_set_error(dt('ERROR: Could not link variant @variant to marker @marker', array(
+      '@variant' => $variant_name,
+      '@marker' => $marker_name)));
+    }
 
-    // Locate the variant on chromosome.
+    // ----- Locate the variant on chromosome -----
     $status = genotypes_loader_helper_add_record_with_mode('Variant location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $variant_id,
       'srcfeature_id' => $chromosome_id,
       'fmin' => $marker['POS'] - 1,
       'fmax' => $marker['POS']
     ));
-    if (!$status) { return FALSE; }
+    if (!$status) { return drush_set_error(dt('ERROR: Could not locate variant @variant on backbone @backbone', array(
+      '@variant' => $variant_name,
+      '@backbone' => $backbone_name)));
+    }
 
     // Locate the marker on chromosome.
     $status = genotypes_loader_helper_add_record_with_mode('Marker location on Chromsome', 'featureloc', $both, array(
@@ -137,11 +160,15 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       'fmin' => $marker['POS'] - 1,
       'fmax' => $marker['POS']
     ));
-    if (!$status) { return FALSE; }
+    if (!$status) { return drush_set_error(dt('ERROR: Could not locate marker @marker on backbone @backbone', array(
+      '@marker' => $marker_name,
+      '@backbone' => $backbone_name)));
+    }
 
     // ------------------------
-    // INSERT GENOTYPES
+    //     INSERT GENOTYPES
     // ------------------------
+
     // The alternate allele can potentially be multiple alleles, so this calls for an associative array
     $ref_allele = $marker['REF'];
     $alt_allele = explode(',',$marker['ALT']);
@@ -154,6 +181,10 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     // For each genotype source, explode the format fields so that we can pull out the genotype directly
     for ($i=9;$i<count($header);$i++) {
       $source_name = $header[$i];
+      if (!$options['sample_list'][$source_name]) {
+        return drush_set_error(dt('ERROR: Sample @source_name in your genotypes file does not match any samples provided in your samples file.', array('@source_name' => $source_name)));
+      }
+
       if ($format_keys) {
         $num_fk = count($format_keys);
         $format_fields = explode(":",$marker[$source_name]);
@@ -238,6 +269,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
       if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
       $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      // @TODO: Return a useful error message
       if (!$status) { return FALSE; }
     }
 
