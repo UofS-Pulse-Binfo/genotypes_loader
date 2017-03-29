@@ -217,10 +217,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         array('@type' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  // Look up the default vocabulary for stock types
-  $stock_type_cv = tripal_get_default_cv('stock', 'type_id');
-  //print_r($stock_type_cv);
-  print_r($types);
 
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
@@ -283,7 +279,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $stock_type_cv->name))->fetchField();
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => 'stock_type'))->fetchField();
       }
       if (!$types[$germplasm_type]) {
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
