@@ -133,10 +133,10 @@ prevalent organism here, and anything in the file will take precedence over it.:
   //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
   $storage_method = 'genotype_call';
   $feature_type_of_marker = 'genetic_marker';
-  $insert_samples = '2';
-  $insert_germplasm = '2';
-  $insert_markers = '2';
-  $insert_variants = '2';
+  $insert_samples = variable_get('genotypes_samples_mode', 2);
+  $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
+  $insert_markers = variable_get('genotypes_variants_mode', 2);
+  $insert_variants = variable_get('genotypes_markers_mode', 2);
 
   $options = array(
     'organism_id' => $organism_id,
