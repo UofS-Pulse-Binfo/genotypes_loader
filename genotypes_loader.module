@@ -15,15 +15,17 @@ require_once('includes/genotypes_loader.legacy.inc');
 function genotypes_loader_menu() {
   $items = array();
 
-  $items['admin/tripal/extension/nd_genotypes/load'] = array(
+/* Currently not working
+  $items['admin/tripal/extension/genotypes_loader/load'] = array(
     'title' => 'Load',
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('nd_genotypes_submit_matrix_loading_job_form'),
+    'page arguments' => array('genotypes_loader_submit_loading_job_form'),
     'access arguments' => array('administer tripal'),
     'weight' => 3,
-    'file' => 'includes/genotypes_loader.genotype_matrix.inc'
+    'file' => 'includes/genotypes_loader.form.inc'
   );
+*/
 
   return $items;
 }
