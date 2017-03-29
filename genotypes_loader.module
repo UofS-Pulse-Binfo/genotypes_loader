@@ -8,12 +8,22 @@ require_once('api/genotypes_loader.api.inc');
 require_once('includes/genotypes_loader.genotype_matrix.inc');
 require_once('includes/genotypes_loader.vcf.inc');
 require_once('includes/genotypes_loader.legacy.inc');
+require_once('includes/genotypes_loader.admin.inc');
 
 /**
  * Implements hook_menu().
  */
 function genotypes_loader_menu() {
   $items = array();
+
+  $items['admin/tripal/extension/genotypes_loader'] = array(
+    'title' => 'Genotypes Loader',
+    'description' => 'Settings related to the genotypes loader.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('genotypes_loader_admin_settings_form'),
+    'access arguments' => array('administer tripal'),
+    'file' => 'includes/genotypes_loader.admin.inc',
+  );
 
   $items['admin/tripal/extension/nd_genotypes/load'] = array(
     'title' => 'Load',
@@ -23,6 +33,15 @@ function genotypes_loader_menu() {
     'access arguments' => array('administer tripal'),
     'weight' => 3,
     'file' => 'includes/genotypes_loader.genotype_matrix.inc'
+  );
+
+  // Add our own autocomplete for cvterms using the tripal function.
+  // This ensures compatibility with both Tripal 2/3.
+  $items['ajax/genotypes_loader/cvterm/%'] = array(
+    'page callback' => 'tripal_autocomplete_cvterm',
+    'page arguments' => array(3),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
