@@ -15,15 +15,102 @@ require_once('includes/genotypes_loader.legacy.inc');
 function genotypes_loader_menu() {
   $items = array();
 
-  $items['admin/tripal/extension/nd_genotypes/load'] = array(
+/* Currently not working
+  $items['admin/tripal/extension/genotypes_loader/load'] = array(
     'title' => 'Load',
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('nd_genotypes_submit_matrix_loading_job_form'),
+    'page arguments' => array('genotypes_loader_submit_loading_job_form'),
     'access arguments' => array('administer tripal'),
     'weight' => 3,
-    'file' => 'includes/genotypes_loader.genotype_matrix.inc'
+    'file' => 'includes/genotypes_loader.form.inc'
   );
+*/
 
   return $items;
+}
+
+/**
+ * The schema for the custom genotype_call table.
+ */
+function genotypes_loader_genotype_call_schema_template() {
+
+  return array(
+    'description' => 'A more compact way to store genotype calls.',
+    'fields' => array(
+      'genotype_call_id' => array(
+        'pgsql_type' => 'bigserial',
+        'views_type' => 'int',
+      ),
+      'variant_id' => array(
+        'description' => 'Links to the feature describing the loci with variation.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'marker_id' => array(
+        'description' => 'Links to the feature describing the marker.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'genotype_id' => array(
+        'description' => 'Links to the allele call.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'project_id' => array(
+        'description' => 'Links to the project grouping calls from a single analysis.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'stock_id' => array(
+        'description' => 'Links to the DNA stock assayed by the marker.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'meta_data' => array(
+        'pgsql_type' => 'jsonb',
+        'views_type' => 'text',
+      ),
+    ),
+    'primary key' => array('genotype_call_id'),
+    'unique keys' => array(),
+    'foreign keys' => array(
+      'feature' => array(
+        'table' => 'feature',
+        'columns' => array(
+          'variant_id' => 'feature_id',
+          'marker_id' => 'feature_id'
+        ),
+      ),
+      'genotype' => array(
+        'table' => 'genotype',
+        'columns' => array(
+          'genotype_id' => 'genotype_id'
+        ),
+      ),
+      'project' => array(
+        'table' => 'project',
+        'columns' => array(
+          'project_id' => 'project_id'
+        ),
+      ),
+      'stock' => array(
+        'table' => 'stock',
+        'columns' => array(
+          'stock_id' => 'stock_id'
+        ),
+      ),
+    ),
+    'indexes' => array(
+      'genotypecall_variant_id' => array('variant_id'),
+      'genotypecall_marker_id' => array('marker_id'),
+      'genotypecall_project_id' => array('project_id'),
+      'genotypecall_stock_id' => array('stock_id'),
+    ),
+  );
 }
