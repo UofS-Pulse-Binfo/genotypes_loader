@@ -199,12 +199,12 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // ----- TYPE IDs -----
   // @TODO: Set these through a settings form
   $terms = array(
-    array('name' => 'DNA', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
-    array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
-    array('name' => 'is_marker_of', 'cv_name' => 'feature_relationship'),
+    array('name' => variable_get('genotypes_sample_type', 'DNA'), 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
+    array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship'),
+    array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
-    array('name' => 'marker_type', 'cv_name' => 'feature_property'),
+    array('name' => variable_get('genotypes_featureprop_type', 'marker_type'), 'cv_name' => 'feature_property'),
   );
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   $types = array();
