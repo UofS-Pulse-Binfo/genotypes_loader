@@ -176,13 +176,14 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   drush_print('  Loading your data according to the "'.$storage_method[ $options['storage_method'] ].'" Method.');
 
   // Check the custom table is there if using Method #2: Genotype Call
-  // @Lacey: This code was originally from the genotype matrix loader. Is this sufficient? (looks like it
-  // just creates the custom table?)
   if ($options['storage_method'] == 'genotype_call') {
-    chado_create_custom_table(
-      'genotype_call',
-      nd_genotypes_genotype_call_schema_template()
-    );
+    // Before attempting to create the table, check it it's already there.
+    if (!chado_get_custom_table_id('genotype_call')) {
+      chado_create_custom_table(
+        'genotype_call',
+        genotypes_loader_genotype_call_schema_template()
+      );
+    }
   }
 
   // Set some variables to abstract mode for genotypes_loader_helper_add_record_with_mode().
