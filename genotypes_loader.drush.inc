@@ -133,10 +133,10 @@ prevalent organism here, and anything in the file will take precedence over it.:
   //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
   $storage_method = 'genotype_call';
   $feature_type_of_marker = 'genetic_marker';
-  $insert_samples = '2';
-  $insert_germplasm = '2';
-  $insert_markers = '2';
-  $insert_variants = '2';
+  $insert_samples = variable_get('genotypes_samples_mode', 2);
+  $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
+  $insert_markers = variable_get('genotypes_variants_mode', 2);
+  $insert_variants = variable_get('genotypes_markers_mode', 2);
 
   $options = array(
     'organism_id' => $organism_id,
@@ -200,12 +200,12 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // ----- TYPE IDs -----
   // @TODO: Set these through a settings form
   $terms = array(
-    array('name' => 'DNA', 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
-    array('name' => 'is_extracted_from', 'cv_name' => 'stock_relationship'),
-    array('name' => 'is_marker_of', 'cv_name' => 'feature_relationship'),
+    array('name' => variable_get('genotypes_sample_type', 'DNA'), 'cv_name' => 'stock_type'), // @CONFIRM: Necessary? Y
+    array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship'),
+    array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
-    array('name' => 'marker_type', 'cv_name' => 'feature_property'),
+    array('name' => variable_get('genotypes_featureprop_type', 'marker_type'), 'cv_name' => 'feature_property'),
   );
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   $types = array();
@@ -218,10 +218,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         array('@type' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  // Look up the default vocabulary for stock types
-  $stock_type_cv = tripal_get_default_cv('stock', 'type_id');
-  //print_r($stock_type_cv);
-  print_r($types);
 
   // ----- ORGANISM NAME -----
   $organism_name = chado_query(
@@ -284,7 +280,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $stock_type_cv->name))->fetchField();
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => 'stock_type'))->fetchField();
       }
       if (!$types[$germplasm_type]) {
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
