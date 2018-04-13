@@ -3,5 +3,4 @@ description = Loads genotypes from various formats into Knowpulse
 core = 7.x
 package = Tripal Extensions
 
-dependencies[] = tripal_core
-
+dependencies[] = tripal
