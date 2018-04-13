@@ -7,12 +7,12 @@ This module provides a drush command to load genotypic data from a variety of fi
  - Alias: load-geno
  - Arguments:
    - input-file: The filename of the matrix file for upload
-   - sample-file: The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder.
+   - sample-file: The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, the germplasm Accession ID, type fo germplasm, and organism (optional). See "samples.list" in the sample_files folder for an example.
  - Options:
    - variant-type: The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).
    - marker-type: A free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).
    - ndgeolocation: A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your ndgeolocation.
-   - organism: The organism to which the genotypes are associated with.
+   - organism: The organism of the reference genome which was used for aligning reads to call the variants. If there is an empty value in the "Organism" column of the sample file, the loader will default to this parameter.
    - project-name: All genotypes will be grouped via a project to allow users to specify a particular dataset.
 
 **This loader supports 3 different file formats (described under file formats below) and will auto-detect which format you have provided.**
@@ -26,7 +26,7 @@ Example Usage:
 ## File Formats
 This module supports loading of three types of genotype files:
  - VCF
- 
+
  ```
 ##fileformat=VCFv4.0
 ##fileDate=20090805
@@ -53,7 +53,7 @@ This module supports loading of three types of genotype files:
 1A	11111	1subfield	C	A	50	PASS	A=1;B=2;C=3	GT	0/1	./.	1/1
 ```
  - Genotype Matrix: a tab-delimited data file where each line corresponds to a SNP and columns correspond to germplasm assayed. Expected columns: (1) Marker Name, (2) Chromosome Name, (3) Position on Chromosome, (4+) Sample Genotype Calls.
- 
+
  ```
  Marker name	Chromosome	Position	1048-8R	964a-46	Giftgi
 FcChr1Ap11111	1A	11111	CC	AC	AA
@@ -61,7 +61,7 @@ FcChr1Ap22222	1A	22222	GG	GC	GG
 FcChr1Ap33333	1A	33333	TA	AA	GA
 ```
  - Genotype Flat-file: a tab delimited data file where each line is a genotypic call. Expected columns: (1) Marker name, (2)	Chromosome Name, (3)	Position on Chromosome, (4)	Sample Name, (5) Genotype call.
- 
+
  ```
 Marker name	Chromosome	Position	Sample name	Genotype call
 FcChr1Ap11111	1A	11111	Ross	CC
@@ -76,7 +76,7 @@ FcChr1Ap11111	1A	11111	Zapelli	CC
 FcChr1Ap11111	1A	11111	Amato	CG
 ```
 
-All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: (1) Sample Name in File, (2)	Sample name,	(3) Sample Accession,	(4) Germplasm name, (5)	Germplasm Accession. 
+All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: (1) Sample Name in File, (2)	Sample name,	(3) Sample Accession,	(4) Germplasm name, (5)	Germplasm Accession.
 
 ```
 Sample_name	Sample_name	Sample_Accession	Germplasm_name	Germplasm_Accession
