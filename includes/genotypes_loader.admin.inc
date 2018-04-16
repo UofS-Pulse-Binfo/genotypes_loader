@@ -103,14 +103,14 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#description' => 'The genotypes loader uses a number of controlled vocabulary terms (cvterms) when loading genotypes into Chado. This form will allow you to not only check that the required cvterms are present but also to change them to suit your needs.',
   );
 
-  $stock_type_cv = tripal_get_cv(array('name' => 'stock_type'));
+  $stock_type_cv = tripal_get_cv(array('name' => 'sequence'));
   $form['cvterms']['sample_type'] = array(
     '#type' => 'textfield',
-    '#title' => 'Stock Type: DNA',
+    '#title' => 'Sequence: genomic_DNA',
     '#description' => 'This cvterm is used as the stock.type_id for the DNA samples that the genotypes are directly attached to.',
-    '#default_value' => variable_get('genotypes_sample_type', 'DNA'),
+    '#default_value' => variable_get('genotypes_sample_type', 'genomic_DNA'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $stock_type_cv->cv_id,
-    '#attributes' => array('data-cv' => 'stock_type', 'data-cv_id' => $stock_type_cv->cv_id ),
+    '#attributes' => array('data-cv' => 'sequence', 'data-cv_id' => $stock_type_cv->cv_id ),
   );
 
   $stock_rel_cv = tripal_get_cv(array('name' => 'stock_relationship'));
