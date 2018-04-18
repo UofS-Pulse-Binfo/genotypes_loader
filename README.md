@@ -105,15 +105,13 @@ For more information see [ND Genotypes: How to Store your Data](https://github.c
 
 This module currently expects the following controlled vocabulary terms already exist in chado:
 
-| Term Name           | Controlled Vocabulary |
-|---------------------|-----------------------|
-| DNA                 |  stock_type           |
-| Accession           | stock_type            |
-| Individual          | stock_type            |
-| is_extracted_from   | stock_relationship    |
-| is_marker_of        | stock_relationship    |
-| *Indicated by user* | sequence              |
-| *Indicated by user* | sequence              |
-| marker_type         | feature_property      |
+|   Purpose    | Term Name           | Controlled Vocabulary |
+|-------|---------------------|-----------------------|
+| Sample type | genomic_DNA         | sequence              |
+| Sample => germplasm relationship | is_extracted_from   | stock_relationship    |
+| Marker => variant relationship | is_marker_of        | stock_relationship    |
+| Marker type | *Indicated by user* | sequence              |
+| Variant type | *Indicated by user* | sequence              |
+| Property type for free-text marker description | marker_type         | feature_property      |
 
-In the future, you will be able to configure these terms through a settings form under module configuration.
+You can configure these terms through a settings form under module configuration. In the future, you will also be able to configure the controlled vocabularies for these terms as well.
