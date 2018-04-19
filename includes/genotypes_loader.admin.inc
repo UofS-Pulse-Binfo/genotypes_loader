@@ -97,10 +97,17 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#value' => 'Save Database Options',
   );
 
+  // Controlled Vocabulary Terms
+  // @todo: Make these more generic by allowing admins to choose terms across mutiple CVs. Right now this is EXTREMELY KnowPulse-specific.
   $form['cvterms'] = array(
     '#type' => 'fieldset',
     '#title' => 'Controlled Vocabulary Terms',
     '#description' => 'The genotypes loader uses a number of controlled vocabulary terms (cvterms) when loading genotypes into Chado. This form will allow you to not only check that the required cvterms are present but also to change them to suit your needs.',
+  );
+  
+  $form['cvterms']['note'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div class="messages warning">This module currently only supports terms from the specified Controlled Vocabularies. See <a href="https://github.com/UofS-Pulse-Binfo/genotypes_loader/issues/15">Issue#15 on GitHub</a> for more information.</div>',
   );
 
   $stock_type_cv = tripal_get_cv(array('name' => 'sequence'));
