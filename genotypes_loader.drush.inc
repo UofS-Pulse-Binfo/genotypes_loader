@@ -199,7 +199,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
 
   // ----- TYPE IDs -----
   $terms = array(
-    array('name' => variable_get('genotypes_sample_type', 'DNA'), 'cv_name' => 'stock_type'),
+    array('name' => variable_get('genotypes_sample_type', 'genomic_DNA'), 'cv_name' => 'sequence'),
     array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship'),
     array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship'),
     array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
