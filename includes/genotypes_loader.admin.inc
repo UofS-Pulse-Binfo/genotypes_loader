@@ -97,20 +97,27 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#value' => 'Save Database Options',
   );
 
+  // Controlled Vocabulary Terms
+  // @todo: Make these more generic by allowing admins to choose terms across mutiple CVs. Right now this is EXTREMELY KnowPulse-specific.
   $form['cvterms'] = array(
     '#type' => 'fieldset',
     '#title' => 'Controlled Vocabulary Terms',
     '#description' => 'The genotypes loader uses a number of controlled vocabulary terms (cvterms) when loading genotypes into Chado. This form will allow you to not only check that the required cvterms are present but also to change them to suit your needs.',
   );
+  
+  $form['cvterms']['note'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div class="messages warning">This module currently only supports terms from the specified Controlled Vocabularies. See <a href="https://github.com/UofS-Pulse-Binfo/genotypes_loader/issues/15">Issue#15 on GitHub</a> for more information.</div>',
+  );
 
-  $stock_type_cv = tripal_get_cv(array('name' => 'stock_type'));
+  $stock_type_cv = tripal_get_cv(array('name' => 'sequence'));
   $form['cvterms']['sample_type'] = array(
     '#type' => 'textfield',
-    '#title' => 'Stock Type: DNA',
+    '#title' => 'Sequence: genomic_DNA',
     '#description' => 'This cvterm is used as the stock.type_id for the DNA samples that the genotypes are directly attached to.',
-    '#default_value' => variable_get('genotypes_sample_type', 'DNA'),
+    '#default_value' => variable_get('genotypes_sample_type', 'genomic_DNA'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $stock_type_cv->cv_id,
-    '#attributes' => array('data-cv' => 'stock_type', 'data-cv_id' => $stock_type_cv->cv_id ),
+    '#attributes' => array('data-cv' => 'sequence', 'data-cv_id' => $stock_type_cv->cv_id ),
   );
 
   $stock_rel_cv = tripal_get_cv(array('name' => 'stock_relationship'));
