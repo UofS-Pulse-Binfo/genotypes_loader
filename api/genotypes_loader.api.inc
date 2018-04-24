@@ -5,6 +5,25 @@
  */
 
 /**
+ * Determines the correct postgreSQL version, otherwise assumes version 9.2.
+ */
+function genotypes_loader_recheck_postgresql_version() {
+  $version_string = db_query('SELECT version()')->fetchField();
+  $version = '9.2';
+  if (preg_match('/PostgreSQL (9\.\d+)\.\d+/', $version_string, $matches)) {
+    $version = $matches[1];
+  }
+  variable_set('pgsql_version', $version);
+}
+
+/**
+  * Retrieve the postgreSQL version.
+  */
+function genotypes_loader_get_postgresql_version() {
+  return variable_get('pgsql_version', '9.2');
+}
+
+/**
  * Adds/Selects a record based on the mode. Helper function for loading genotype matrix
  * that does the select/insert based on mode logic.
  *
