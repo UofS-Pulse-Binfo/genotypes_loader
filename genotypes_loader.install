@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * Implements hook_enable().
+ */
+function genotypes_loader_enable() {
+
+  // Determine the PostgreSQL version.
+  genotypes_loader_recheck_postgresql_version();
+}
+
+/**
+ * Implements hook_install().
+ */
+function genotypes_loader_install() {
+
+  // Determine the PostgreSQL version.
+  genotypes_loader_recheck_postgresql_version();
+}
