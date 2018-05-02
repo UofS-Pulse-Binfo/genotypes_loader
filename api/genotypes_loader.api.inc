@@ -6,6 +6,9 @@
 
 /**
  * Determines the correct postgreSQL version, otherwise assumes version 9.2.
+ * 
+ * @return
+ *   The numbered version of PostgreSQL (ex. 9.2, 9.3, etc)
  */
 function genotypes_loader_recheck_postgresql_version() {
   $version_string = db_query('SELECT version()')->fetchField();
@@ -14,6 +17,8 @@ function genotypes_loader_recheck_postgresql_version() {
     $version = $matches[1];
   }
   variable_set('pgsql_version', $version);
+  
+  return $version;
 }
 
 /**
