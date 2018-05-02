@@ -8,7 +8,7 @@ function genotypes_loader_enable() {
   // Determine the PostgreSQL version.
   $pg_version = genotypes_loader_recheck_postgresql_version();
   
-  // drupal_set_message(t('Your postgresql version is: %curr', array('%curr' => $pg_version)));
+  drupal_set_message(t('Your postgresql version is: %curr', array('%curr' => $pg_version)));
   
   // If not using PostgreSQL 9.3+, give an error
   if (is_numeric($pg_version)) {
