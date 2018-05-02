@@ -2,6 +2,10 @@
 
 This module provides a drush command to load genotypic data from a variety of file formats. Data is saved in GMOD Chado with three separate methods supported (See Data Storage below).
 
+## Dependencies
+1. Tripal 3.x
+2. PostgreSQL 9.3 and up (at least 9.4 is recommended)
+
 ## Command
  - Command: load-genotypes
  - Alias: load-geno
