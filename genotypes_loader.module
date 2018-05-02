@@ -107,7 +107,7 @@ function genotypes_loader_genotype_call_schema_template() {
         'name' => 'meta_data',
         'title' => 'Meta data',
         'description' => 'JSON storage of any addition meta-data for the call.',
-        'pgsql_type' => ($version == '9.4') ? 'jsonb' : 'json',
+        'pgsql_type' => ($version >= '9.4') ? 'jsonb' : 'json',
         'views_type' => 'text',
       ),
     ),
