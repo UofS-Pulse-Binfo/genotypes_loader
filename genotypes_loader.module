@@ -53,6 +53,8 @@ function genotypes_loader_menu() {
  * The schema for the custom genotype_call table.
  */
 function genotypes_loader_genotype_call_schema_template() {
+  
+  $version = variable_get('pgsql_version', '9.2');
 
   return array(
     'description' => 'A more compact way to store genotype calls.',
@@ -62,37 +64,50 @@ function genotypes_loader_genotype_call_schema_template() {
         'views_type' => 'int',
       ),
       'variant_id' => array(
+        'name' => 'variant_id',
+        'title' => 'Variant ID',
         'description' => 'Links to the feature describing the loci with variation.',
         'pgsql_type' => 'bigint',
         'views_type' => 'int',
         'not null' => TRUE,
       ),
       'marker_id' => array(
+        'name' => 'marker_id',
+        'title' => 'Marker ID',
         'description' => 'Links to the feature describing the marker.',
         'pgsql_type' => 'bigint',
         'views_type' => 'int',
         'not null' => TRUE,
       ),
       'genotype_id' => array(
+        'name' => 'genotype_id',
+        'title' => 'Genotype ID',
         'description' => 'Links to the allele call.',
         'pgsql_type' => 'bigint',
         'views_type' => 'int',
         'not null' => TRUE,
       ),
       'project_id' => array(
+        'name' => 'project_id',
+        'title' => 'Project ID',
         'description' => 'Links to the project grouping calls from a single analysis.',
         'pgsql_type' => 'bigint',
         'views_type' => 'int',
         'not null' => TRUE,
       ),
       'stock_id' => array(
+        'name' => 'stock_id',
+        'title' => 'Stock ID',
         'description' => 'Links to the DNA stock assayed by the marker.',
         'pgsql_type' => 'bigint',
         'views_type' => 'int',
         'not null' => TRUE,
       ),
       'meta_data' => array(
-        'pgsql_type' => 'jsonb',
+        'name' => 'meta_data',
+        'title' => 'Meta data',
+        'description' => 'JSON storage of any addition meta-data for the call.',
+        'pgsql_type' => ($version >= '9.4') ? 'jsonb' : 'json',
         'views_type' => 'text',
       ),
     ),
