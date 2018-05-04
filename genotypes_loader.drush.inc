@@ -276,10 +276,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // User can optionally supply a stock_type for each germplasm if they are inserting
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
+      
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => 'stock_type'))->fetchField();
+
+        $cv_name = 'stock_type';
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
       if (!$types[$germplasm_type]) {
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
