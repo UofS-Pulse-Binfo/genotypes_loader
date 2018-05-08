@@ -314,8 +314,8 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- STOCK -----
     $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
       'uniquename' => $sample_accession,
-      // @ASSUMPTION: The original stock for which the marker is associated to is of type DNA
-      'type_id' => $types['DNA'],
+      // @ASSUMPTION: The original stock for which the marker is associated to is of type genomic_DNA
+      'type_id' => $types['genomic_DNA'],
     ), array(
       'name' => $sample_name,
       'organism_id' => $options['organism_id'],
