@@ -92,9 +92,10 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     // Since a VCF file is the result of alignments to a genome that should already be in the database,
     // we assume that the "chromosomes" already exist, so let's select and store the feature id ahead of time.
     // ----- Chromosome -----
+    $backbone_name = $marker['#CHROM'];
     $chromosome_id = genotypes_loader_helper_add_record_with_mode('Chromosome', 'feature', $select_only, array(
-        'name' => $marker['#CHROM'],
-        'uniquename' => $marker['#CHROM'],
+        'name' => $backbone_name,
+        'uniquename' => $backbone_name,
         'organism_id' => $options['organism_id'],
     ));
     if (!$chromosome_id) { return drush_set_error(dt('ERROR: Could not find a chromosome ID for @backbone', array('@backbone' => $backbone_name))); }

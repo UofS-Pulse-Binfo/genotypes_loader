@@ -135,8 +135,8 @@ prevalent organism here, and anything in the file will take precedence over it.:
   $feature_type_of_marker = 'genetic_marker';
   $insert_samples = variable_get('genotypes_samples_mode', 2);
   $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
-  $insert_markers = variable_get('genotypes_variants_mode', 2);
-  $insert_variants = variable_get('genotypes_markers_mode', 2);
+  $insert_variants = variable_get('genotypes_variants_mode', 2);
+  $insert_markers = variable_get('genotypes_markers_mode', 2);
 
   $options = array(
     'organism_id' => $organism_id,
@@ -276,10 +276,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // User can optionally supply a stock_type for each germplasm if they are inserting
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
+      
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => 'stock_type'))->fetchField();
+
+        $cv_name = 'stock_type';
+        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
       if (!$types[$germplasm_type]) {
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
@@ -311,8 +314,8 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- STOCK -----
     $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
       'uniquename' => $sample_accession,
-      // @ASSUMPTION: The original stock for which the marker is associated to is of type DNA
-      'type_id' => $types['DNA'],
+      // @ASSUMPTION: The original stock for which the marker is associated to is of type genomic_DNA
+      'type_id' => $types['genomic_DNA'],
     ), array(
       'name' => $sample_name,
       'organism_id' => $options['organism_id'],
