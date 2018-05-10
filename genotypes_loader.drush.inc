@@ -135,8 +135,8 @@ prevalent organism here, and anything in the file will take precedence over it.:
   $feature_type_of_marker = 'genetic_marker';
   $insert_samples = variable_get('genotypes_samples_mode', 2);
   $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
-  $insert_markers = variable_get('genotypes_variants_mode', 2);
-  $insert_variants = variable_get('genotypes_markers_mode', 2);
+  $insert_variants = variable_get('genotypes_variants_mode', 2);
+  $insert_markers = variable_get('genotypes_markers_mode', 2);
 
   $options = array(
     'organism_id' => $organism_id,
