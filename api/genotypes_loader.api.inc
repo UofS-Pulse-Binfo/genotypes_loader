@@ -221,14 +221,18 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v) {
   if (!$genotype_id) return FALSE;
 
   // Genotype Call
-  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, array(
+  $select_values = array(
     'variant_id' => $v['variant_id'],
     'marker_id' => $v['marker_id'],
     'genotype_id' => $genotype_id,
     'project_id' => $v['project_id'],
     'stock_id' => $v['stock_id'],
+  );
+  $insert_values = array(
     'meta_data' => $v['meta_data'],
-  ));
+  );
+  
+  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
   if (!$genotype_call_id) return FALSE;
 
   return TRUE;
