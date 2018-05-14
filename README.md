@@ -28,6 +28,7 @@ Example Usage:
    - `drush load-genotypes mygenotypes.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
 
 ## File Formats
+### Genotypes File
 This module supports loading of three types of genotype files:
  - VCF
 
@@ -56,7 +57,7 @@ This module supports loading of three types of genotype files:
 1A	1230237	.	T	.	47	PASS	NS=3;DP=13;AA=T	GT:GQ:DP:HQ	0|0:54:7:56,60	0|0:48:4:51,51	0/0:61:2
 1A	11111	1subfield	C	A	50	PASS	A=1;B=2;C=3	GT	0/1	./.	1/1
 ```
- - Genotype Matrix: a tab-delimited data file where each line corresponds to a SNP and columns correspond to germplasm assayed. Expected columns: (1) Marker Name, (2) Chromosome Name, (3) Position on Chromosome, (4+) Sample Genotype Calls.
+ - Genotype Matrix: a tab-delimited data file where each line corresponds to a SNP and columns correspond to germplasm assayed. Expected columns: **(1) Marker Name**, **(2) Chromosome Name**, **(3) Position on Chromosome**, **(4+) Sample Genotype Calls**.
 
  ```
  Marker name	Chromosome	Position	1048-8R	964a-46	Giftgi
@@ -64,7 +65,7 @@ FcChr1Ap11111	1A	11111	CC	AC	AA
 FcChr1Ap22222	1A	22222	GG	GC	GG
 FcChr1Ap33333	1A	33333	TA	AA	GA
 ```
- - Genotype Flat-file: a tab delimited data file where each line is a genotypic call. Expected columns: (1) Marker name, (2)	Chromosome Name, (3)	Position on Chromosome, (4)	Sample Name, (5) Genotype call.
+ - Genotype Flat-file: a tab delimited data file where each line is a genotypic call. Expected columns: **(1) Marker name**, **(2)	Chromosome Name**, **(3)	Position on Chromosome**, **(4)	Sample Name**, **(5) Genotype call**.
 
  ```
 Marker name	Chromosome	Position	Sample name	Genotype call
@@ -80,7 +81,10 @@ FcChr1Ap11111	1A	11111	Zapelli	CC
 FcChr1Ap11111	1A	11111	Amato	CG
 ```
 
-All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: (1) Sample Name in File, (2)	Sample name,	(3) Sample Accession,	(4) Germplasm name, (5)	Germplasm Accession.
+### Samples File
+All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: **(1) Sample name** in the genotypes file, **(2)	Sample name**,	**(3) Sample accession**,	**(4) Germplasm name**, **(5)	Germplasm accession**.
+
+The next two columns are optional: **(6) Germplasm type** (otherwise it is currently assumed to be of type 'Individual' from the stock_type cv) and **(7) Organism** (this allows multiple organisms in your genotypes file, assuming they have all been aligned to the same genome. Otherwise, the default value is the organism you specified as an option).
 
 ```
 Sample name	Sample_name	Sample_Accession	Germplasm_name	Germplasm_Accession	Germplasm_Type	Organism
