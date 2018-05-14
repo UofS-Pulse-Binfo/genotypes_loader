@@ -48,17 +48,24 @@ function genotypes_loader_get_postgresql_version() {
  */
 
  /**
-  *  Give the different errors that are possible separate error codes. Also allow a parameter to be given to
+  *  @TODO: Give the different errors that are possible separate error codes. Also allow a parameter to be given to
   *  either "handle errors" or not- this way, if we see a certain error (such as not unique), we can handle it
   *  from outside of the function.
   *
-  *  Also - don't forget to refer to Lacey's new helper function on Github. This function needs to evolve
-  *  regardless! Whether or not we go with copying from a file remains to be seen...
   */
 
 function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
+  
+  // The number of records to copy at once
+  $copy_chunk_size = 50000;
+  
   // the name of the primary key.
   $pkey = $table . '_id';
+  
+  // If the mode is insert only, then we should be able to safely copy everything to a file and load in bulk
+  
+  // Else if the mode is insert & select, or select only, insert one record at a time
+  
   // First we select the record to see if it already exists.
   $record = chado_select_record($table, array($pkey), $select_values);
   // If we want to insert values, we can merge our values to have all the information we need
