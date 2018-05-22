@@ -58,7 +58,7 @@ function genotypes_loader_get_postgresql_version() {
 
 function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array(), $file_name = NULL) {
   
-  drush_print("Record type: " . $record_type . ", Mode: " . $mode);
+  //drush_print("Record type: " . $record_type . ", Mode: " . $mode);
   
   // The number of records to copy at once
   $copy_chunk_size = 50000;
@@ -78,21 +78,26 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
     // then we need to determine a file name in a repeatable but unique manner.
     if ($file_name === NULL) {
       $file_stub = '/tmp/genotype_loader.';
-      $file_name = $file_stub . $table . '.csv';
+      $record_type = str_replace(' ', '_', $record_type);
+      $record_type = strtolower($record_type);
+      $file_name = $file_stub . $table . '-' . $record_type . '.csv';
     }
     
-    drush_print("Filename: " . $file_name);
+    //drush_print("Filename: " . $file_name);
     
     // Now open the file to write to since this is needed by fputcsv.
     // @TODO "Lacey: I'm concerned this might be a point of slowness. Perhaps there is a better
     //       way to create CSV that doesn't require fputcsv and is more reliable
     //       then simply imploding the values with comma's in-between."
-    $file_handle = fopen($file_name, 'w');
+    $file_handle = fopen($file_name, 'a');
     
     // Since we want to insert values, we can merge our values to have all the information we need and then write to the file.
     $values = array_merge($select_values, $insert_values);
     ksort($values); // to ensure they're always in the same order.
     fputcsv($file_handle, $values);
+    
+    return TRUE;
+    
   }
   
   // Else if the mode is insert & select, or select only, insert one record at a time
