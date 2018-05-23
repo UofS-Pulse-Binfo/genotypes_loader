@@ -43,8 +43,6 @@ function genotypes_loader_get_postgresql_version() {
  *   select and the insert.
  * @param $insert_values
  *   An array of [table column] => [value] mappings that is specific to the insert.
- * @param $file_name
- *   An optional name for the file to write the values to if mode is insert only
  * @return
  *   The value of the primary key for the inserted/selected record or FALSE if failed.
  */
@@ -56,12 +54,7 @@ function genotypes_loader_get_postgresql_version() {
   *
   */
 
-function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array(), $file_name = NULL) {
-  
-  //drush_print("Record type: " . $record_type . ", Mode: " . $mode);
-  
-  // The number of records to copy at once
-  $copy_chunk_size = 50000;
+function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
   
   // Set some variables to abstract mode
   $select_only = 0;
@@ -70,77 +63,101 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
   
   // the name of the primary key.
   $pkey = $table . '_id';
+      
+  // First we select the record to see if it already exists.
+  $record = chado_select_record($table, array($pkey), $select_values); 
   
-  // If the mode is insert only, then we should be able to safely copy everything to a file and load in bulk
-  if ($mode == $insert_only) {
-    
-    // If we weren't given the name of the file to write to
-    // then we need to determine a file name in a repeatable but unique manner.
-    if ($file_name === NULL) {
-      $file_stub = '/tmp/genotype_loader.';
-      $record_type = str_replace(' ', '_', $record_type);
-      $record_type = strtolower($record_type);
-      $file_name = $file_stub . $table . '-' . $record_type . '.csv';
+  // If it exists and the mode is 1 (Insert Only) then return an error to drush.
+  if (sizeof($record) == 1) {
+    if ($mode == $insert_only) {
+      return drush_set_error(dt('Record "@record_type" already exists but you chose to only insert (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($select_values,TRUE));
     }
-    
-    //drush_print("Filename: " . $file_name);
-    
-    // Now open the file to write to since this is needed by fputcsv.
-    // @TODO "Lacey: I'm concerned this might be a point of slowness. Perhaps there is a better
-    //       way to create CSV that doesn't require fputcsv and is more reliable
-    //       then simply imploding the values with comma's in-between."
-    $file_handle = fopen($file_name, 'a');
-    
-    // Since we want to insert values, we can merge our values to have all the information we need and then write to the file.
-    $values = array_merge($select_values, $insert_values);
-    ksort($values); // to ensure they're always in the same order.
-    fputcsv($file_handle, $values);
-    
-    return TRUE;
-    
-  }
-  
-  // Else if the mode is insert & select, or select only, insert one record at a time
-  else {
-    
-    // First we select the record to see if it already exists.
-    $record = chado_select_record($table, array($pkey), $select_values); 
-    
-    // If it exists then return the primary key
-    if (sizeof($record) == 1) {
+    // Otherwise the mode allows select so return the value of the primary key.
+    else {
       return $record[0]->{$pkey};
     }
+  }
     
-    // If more then one result is returned then this is NOT UNIQUE and we should report an
-    // error to the user - not just run with the first one.
-    elseif (sizeof($record) > 1) {
-      return drush_set_error(dt('Record "@record_type" is not unique. (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+  // If more then one result is returned then this is NOT UNIQUE and we should report an
+  // error to the user - not just run with the first one.
+  elseif (sizeof($record) > 1) {
+    return drush_set_error(dt('Record "@record_type" is not unique. (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($select_values,TRUE));
+  }
+  
+  // If there is no pre-existing sample but we've been given permission to create it,
+  // then insert it
+  elseif ($mode == $both) {
+    
+    // If we want to insert values, we can merge our values to have all the information we need
+    $values = array_merge($select_values, $insert_values);
+    
+    $record = chado_insert_record($table, $values);
+    
+    // If the primary key is available then the insert worked and we can return it.
+    if (isset($record[$pkey])) {
+      return $record[$pkey];
     }
-    // If there is no pre-existing sample but we've been given permission to create it,
-    // then insert it
-    elseif ($mode == $both) {
-      
-      // If we want to insert values, we can merge our values to have all the information we need
-      $values = array_merge($select_values, $insert_values);
-      
-      $record = chado_insert_record($table, $values);
-      
-      // If the primary key is available then the insert worked and we can return it.
-      if (isset($record[$pkey])) {
-        return $record[$pkey];
-      }
-      // Otherwise, something went wrong so tell the user
-      else {
-        return drush_set_error(dt('Tried to insert "@record_type" but the primary key is returned empty (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
-      }
-    }
-    // If there is no pre-existing record and we are not allowed to create one
-    // then return an error.
+    // Otherwise, something went wrong so tell the user
     else {
-      return drush_set_error(dt('Record "@record_type" doesn\'t already exist but you chose to only select (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+      return drush_set_error(dt('Tried to insert "@record_type" but the primary key is returned empty (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
     }
   }
+  // If there is no pre-existing record and we are not allowed to create one
+  // then return an error.
+  else {
+    return drush_set_error(dt('Record "@record_type" doesn\'t already exist but you chose to only select (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+  }
 }
+
+/**
+ * This function will copy into the database the the last remaining chunk of insert-only records
+ * 
+ * @param $record_type
+ *   A human-readable term for your record for error messages.
+ * @param $table
+ *   The chado table to insert into.
+ * @param $insert_values
+ *   An array of [table column] => [value] mappings that is specific to the insert.
+ * @param $record_count
+ *   The current count (less than the copy_chunk_size) of records that are being loaded in.
+ * @param $file_name
+ *   An optional name for the file to write the values to
+ * @return
+ *   TRUE if success, FALSE if failed.
+ */
+
+function genotypes_loader_helper_copy_records($record_type, $table, $insert_values = array(), $record_count = NULL, $file_name = NULL) {
+  
+  // If we weren't given the name of the file to copy from, then try to find it using the record_type and table name
+  // that we were given
+  if ($file_name === NULL) {
+    $file_stub = '/tmp/genotype_loader.';
+    $record_type = str_replace(' ', '_', $record_type);
+    $record_type = strtolower($record_type);
+    $file_name = $file_stub . $table . '-' . $record_type . '.csv';
+  }
+  
+  // Now open the file to write to since this is needed by fputcsv.
+  // @TODO "Lacey: I'm concerned this might be a point of slowness. Perhaps there is a better
+  //       way to create CSV that doesn't require fputcsv and is more reliable
+  //       then simply imploding the values with comma's in-between."
+  $file_handle = fopen($file_name, 'a') or die ("ERROR: Unable to create $file_name to bulk load records!\n");;
+  ksort($insert_values); // to ensure they're always in the same order.
+  fputcsv($file_handle, $values);
+  
+  if ($record_count >= $copy_chunk_size) {
+    // Determine the COPY Command using the keys of the values array (i.e. the fields)
+    // and the file name.
+    
+    // Use drush to determine the connection details and then execute the command.
+    
+  }
+  
+  return TRUE;
+  
+  
+}
+
 
 /**
  * Adds genotype records when using the ND Experiment Tables storage method. This is a
