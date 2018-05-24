@@ -128,6 +128,8 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
 
 function genotypes_loader_helper_copy_records($record_type, $table, $insert_values = array(), $record_count = NULL, $file_name = NULL) {
   
+  $copy_chunk_size = 5;
+  
   // If we weren't given the name of the file to copy from, then try to find it using the record_type and table name
   // that we were given
   if ($file_name === NULL) {
@@ -143,14 +145,18 @@ function genotypes_loader_helper_copy_records($record_type, $table, $insert_valu
   //       then simply imploding the values with comma's in-between."
   $file_handle = fopen($file_name, 'a') or die ("ERROR: Unable to create $file_name to bulk load records!\n");;
   ksort($insert_values); // to ensure they're always in the same order.
-  fputcsv($file_handle, $values);
+  fputcsv($file_handle, $insert_values);
   
-  if ($record_count >= $copy_chunk_size) {
+  if ($record_count%$copy_chunk_size == 0) {
     // Determine the COPY Command using the keys of the values array (i.e. the fields)
     // and the file name.
     
     // Use drush to determine the connection details and then execute the command.
     
+    drush_print("Yippee, copying in " . $record_count . " records now!");
+    fclose($file_handle);
+    $file_handle = fopen($file_name, 'w');
+    //fclose($file_handle);
   }
   
   return TRUE;
@@ -272,7 +278,7 @@ function genotypes_loader_helper_add_genotypes_nd_exp($v) {
  * @return
  *   TRUE if successful and FALSE otherwise.
  */
-function genotypes_loader_helper_add_genotypes_genotype_call($v) {
+function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0) {
 
   // Set some variables to abstract mode for genotypes_loader_helper_add_record_with_mode().
   $select_only = 0;
@@ -286,22 +292,23 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v) {
     'description' => $v['allele'],
     'type_id' => $v['variant_type_id'],
   ));
-  if (!$genotype_id) return FALSE;
+  if (!$genotype_id) return drush_set_error(dt('ERROR: Could not insert the genotype into the genotype table. Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
 
-  // Genotype Call
-  $select_values = array(
+  // Enter the genotype call by adding to a file and copy in as a batch
+  $insert_values = array(
     'variant_id' => $v['variant_id'],
     'marker_id' => $v['marker_id'],
     'genotype_id' => $genotype_id,
     'project_id' => $v['project_id'],
     'stock_id' => $v['stock_id'],
-  );
-  $insert_values = array(
     'meta_data' => $v['meta_data'],
   );
   
-  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
-  if (!$genotype_call_id) return FALSE;
+  $status = genotypes_loader_helper_copy_records('Genotype Call', 'genotype_call', $insert_values, $num_calls);
+  
+  
+//  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
+//  if (!$genotype_call_id) return FALSE;
 
   return TRUE;
 }

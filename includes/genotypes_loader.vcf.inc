@@ -75,6 +75,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
   print($progress);
+  
+  // Start the counter for number of (non-empty) genotypic calls
+  $num_calls = 0;
 
   // Now going line by line to pull out the marker, then genotypes.
   while(!feof($VCFfile)) {
@@ -250,6 +253,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       // If $allele is empty, it means we have missing data for this genotype (ie. ./.)
       // Thus, skip this particular genotype and move onto the next.
       if (!$allele) { continue; }
+      
+      // Since it is non-empty, increment the genotype call count
+      $num_calls++;
 
       $fields = array(
         'project_id' => $options['project_id'],
@@ -269,7 +275,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
 
       if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
       if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
-      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields, $num_calls);
       // @TODO: Return a useful error message
       if (!$status) { return FALSE; }
     }
