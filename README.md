@@ -11,12 +11,12 @@ This module provides a drush command to load genotypic data from a variety of fi
  - Alias: load-geno
  - Arguments:
    - input-file: The filename of the matrix file for upload
-   - sample-file: The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, and the germplasm Accession ID. See "samples.list" in the sample_files folder.
+   - sample-file: The filename of a tab-delimited file specifying for each sample name in the genotypes file: the name of the stock in the database, the stock accession ID, the name of the germplasm, the germplasm Accession ID, type fo germplasm, and organism (optional). See "samples.list" in the sample_files folder for an example.
  - Options:
    - variant-type: The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).
    - marker-type: A free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).
    - ndgeolocation: A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your ndgeolocation.
-   - organism: The organism to which the genotypes are associated with.
+   - organism: The organism of the reference genome which was used for aligning reads to call the variants. If there is an empty value in the "Organism" column of the sample file, the loader will default to this parameter.
    - project-name: All genotypes will be grouped via a project to allow users to specify a particular dataset.
 
 **This loader supports 3 different file formats (described under file formats below) and will auto-detect which format you have provided.**
@@ -28,9 +28,10 @@ Example Usage:
    - `drush load-genotypes mygenotypes.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
 
 ## File Formats
+### Genotypes File
 This module supports loading of three types of genotype files:
  - VCF
- 
+
  ```
 ##fileformat=VCFv4.0
 ##fileDate=20090805
@@ -56,16 +57,16 @@ This module supports loading of three types of genotype files:
 1A	1230237	.	T	.	47	PASS	NS=3;DP=13;AA=T	GT:GQ:DP:HQ	0|0:54:7:56,60	0|0:48:4:51,51	0/0:61:2
 1A	11111	1subfield	C	A	50	PASS	A=1;B=2;C=3	GT	0/1	./.	1/1
 ```
- - Genotype Matrix: a tab-delimited data file where each line corresponds to a SNP and columns correspond to germplasm assayed. Expected columns: (1) Marker Name, (2) Chromosome Name, (3) Position on Chromosome, (4+) Sample Genotype Calls.
- 
+ - Genotype Matrix: a tab-delimited data file where each line corresponds to a SNP and columns correspond to germplasm assayed. Expected columns: **(1) Marker Name**, **(2) Chromosome Name**, **(3) Position on Chromosome**, **(4+) Sample Genotype Calls**.
+
  ```
  Marker name	Chromosome	Position	1048-8R	964a-46	Giftgi
 FcChr1Ap11111	1A	11111	CC	AC	AA
 FcChr1Ap22222	1A	22222	GG	GC	GG
 FcChr1Ap33333	1A	33333	TA	AA	GA
 ```
- - Genotype Flat-file: a tab delimited data file where each line is a genotypic call. Expected columns: (1) Marker name, (2)	Chromosome Name, (3)	Position on Chromosome, (4)	Sample Name, (5) Genotype call.
- 
+ - Genotype Flat-file: a tab delimited data file where each line is a genotypic call. Expected columns: **(1) Marker name**, **(2)	Chromosome Name**, **(3)	Position on Chromosome**, **(4)	Sample Name**, **(5) Genotype call**.
+
  ```
 Marker name	Chromosome	Position	Sample name	Genotype call
 FcChr1Ap11111	1A	11111	Ross	CC
@@ -80,20 +81,23 @@ FcChr1Ap11111	1A	11111	Zapelli	CC
 FcChr1Ap11111	1A	11111	Amato	CG
 ```
 
-All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: (1) Sample Name in File, (2)	Sample name,	(3) Sample Accession,	(4) Germplasm name, (5)	Germplasm Accession. 
+### Samples File
+All formats require a separate samples file describing the germplasm assayed. This file is expected to be a tab-delimited file with the following columns: **(1) Sample name** in the genotypes file, **(2)	Sample name**,	**(3) Sample accession**,	**(4) Germplasm name**, **(5)	Germplasm accession**.
+
+The next two columns are optional: **(6) Germplasm type** (otherwise it is currently assumed to be of type 'Individual' from the stock_type cv) and **(7) Organism** (this allows multiple organisms in your genotypes file, assuming they have all been aligned to the same genome. Otherwise, the default value is the organism you specified as an option).
 
 ```
-Sample_name	Sample_name	Sample_Accession	Germplasm_name	Germplasm_Accession
-Ross	Ross_110201	Catsam1	Ross	Catgerm1
-Prado	Prado_110201	Catsam2	Prado	Catgerm2
-Ash	Ash_110201	Catsam3	Ash	Catgerm3
-Piero	Piero_110201	Catsam4	Piero	Catgerm4
-Tai	Tai_110201	Catsam5	Tai	Catgerm5
-Beverly	Beverly_110201	Catsam6	Beverly	Catgerm6
-Argent	Argent_110201	Catsam7	Argent	Catgerm7
-Trenus	Trenus_110201	Catsam8	Trenus	Catgerm8
-Zapelli	Zapelli_110201	Catsam9	Zapelli	Catgerm9
-Amato	Amato_110201	Catsam10	Amato	Catgerm10
+Sample name	Sample_name	Sample_Accession	Germplasm_name	Germplasm_Accession	Germplasm_Type	Organism
+Ross	Ross_110201	Catsam1	Ross	Catgerm1	Individual	Felis catus
+Prado	Prado_110201	Catsam2	Prado	Catgerm2	Individual	Felis catus
+Ash	Ash_110201	Catsam3	Ash	Catgerm3	Individual	Felis catus
+Piero	Piero_110201	Catsam4	Piero	Catgerm4	Individual	Felis catus
+Tai	Tai_110201	Catsam5	Tai	Catgerm5	Individual	Felis catus
+Beverly	Beverly_110201	Catsam6	Beverly	Catgerm6	Individual	Felis catus
+Argent	Argent_110201	Catsam7	Argent	Catgerm7	Individual	Felis catus
+Trenus	Trenus_110201	Catsam8	Trenus	Catgerm8	Individual	Felis catus
+Zapelli	Zapelli_110201	Catsam9	Zapelli	Catgerm9	Individual	Felis catus
+Amato Amato_110201 Catsam10 Amato Catgerm10 Individual Felis catus
 ```
 
 ## Data Storage

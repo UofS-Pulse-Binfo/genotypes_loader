@@ -219,6 +219,8 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   }
 
   // ----- ORGANISM NAME -----
+  // This is the organism for which the chromosome/variants/markers are located on its genome, since multiple organisms 
+  // may be present in the input file but only one organism's genome would have had the sequence aligned to it.
   $organism_name = chado_query(
      "SELECT organism.genus||' '||organism.species
         FROM {organism}
@@ -273,6 +275,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $sample_accession = array_shift($current_line);
     $germplasm_name = array_shift($current_line);
     $germplasm_accession = array_shift($current_line);
+    
+    // Setting the following as defaults if the 6th and/or 7th columns are not provided
+    $germplasm_type = 'Individual';
+    $organism_id = $options['organism_id'];
+    
     // User can optionally supply a stock_type for each germplasm if they are inserting
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
@@ -280,7 +287,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-
         $cv_name = 'stock_type';
         $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
@@ -288,6 +294,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
       }
     }
+    
     // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database.
     // We need to allow spaces in the genus and species, so use a custom query to check that what the user
     // input matches what is in the database.
@@ -314,11 +321,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- STOCK -----
     $stock_id = genotypes_loader_helper_add_record_with_mode('Sample', 'stock', $options['insert_samples'], array(
       'uniquename' => $sample_accession,
-      // @ASSUMPTION: The original stock for which the marker is associated to is of type genomic_DNA
+      'organism_id' => $organism_id,
+      // @ASSUMPTION: The original stock for which the marker is associated to is of type 'genomic_DNA'.
       'type_id' => $types['genomic_DNA'],
     ), array(
       'name' => $sample_name,
-      'organism_id' => $options['organism_id'],
     ));
     if (!$stock_id) { return drush_set_error(dt('ERROR: Could not find a stock ID for @stock', array('@stock' => $sample_accession))); }
 //    drush_print("Found stock ID: $stock_id for sample: $sample_name");
@@ -326,13 +333,16 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- GERMPLASM -----
     $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
       'uniquename' => $germplasm_accession,
-    ), array(
       // @ASSUMPTION: If a germplasm already exists, we don't assume its type, but we do require
-      //              a type if we're inserting. So here we are assuming it is of type "Individual".
+      //              a type if we're inserting. So unless it was specified in the samples list, we 
+      //              are assuming type 'Individual'. Ideally, this user could provide the default type
+      //              as an option like with organism. *wink wink nudge nudge*
       'type_id' => $types[$germplasm_type],
+      'organism_id' => $organism_id,
+    ), array(
       'name' => $germplasm_name,
-      'organism_id' => $options['organism_id'],
     ));
+    
     if (!$germplasm_id) { return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession))); }
 //    drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
 
