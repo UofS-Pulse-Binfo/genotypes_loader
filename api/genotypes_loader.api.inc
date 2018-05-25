@@ -154,7 +154,6 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     //$copy_command = 'COPY chado.' . $table . ' (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
     //drush_print("The copy command: " . $copy_command);
     
-    // Use drush to determine the connection details and then execute the command.
     fclose($file_handle);
     drush_print("Yippee, copying in " . $record_count . " records now!");
     
@@ -165,12 +164,50 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   
   return TRUE;
   
-  
 }
 
-function genotypes_loader_execute_copy_command($copy_command) {
-
-  // Use drush to determine the connection details and then execute the command.
+/**
+ * Uses drush to safely copy data quickly. ONLY USE IN TRIPAL JOBS!!
+ *
+ * PostgreSQL COPY is extremely effective at copying/inserting large amount of
+ * data. This modules uses it to create materialized views to cache queries
+ * for faster data access. However, using chado_query('COPY...') poses many
+ * security risks in a web setting. We use a combination of drush sql-cli,
+ * which opens a psql session, and psql's \copy command to take advantage of
+ * the fact that Tripal Jobs are run on the command-line.
+ *
+ * @param $copy_command
+ *   The full PostgreSQL copy command to be executed.
+ */
+function genotypes_loader_remote_copy($copy_command) {
+  /**
+   * The following is the remote copy function used by the nd_genotypes module
+   * 
+  // Prefix the tables with their correct schema.
+  // Chado tables should be enclosed in curly brackets (ie: {feature} )
+  // and Drupal tables should be enclosed in square brackets (ie: [tripal_jobs] ).
+  $chado_schema_name = tripal_get_schema_name('chado');
+  $drupal_schema_name = tripal_get_schema_name('drupal');
+  $copy_command = preg_replace('/\{(.*?)\}/', $chado_schema_name.'.$1', $copy_command);
+  $copy_command = preg_replace('/\[(\w+)\]/', $drupal_schema_name.'.$1', $copy_command);
+  // Substitute any arguements for placeholders.
+  foreach ($args as $k => $v) {
+    if (is_string($v)) {
+      $args[$k] = "'" . $v . "'";
+    }
+  }
+  $copy_command = strtr($copy_command, $args);
+  // Allow the same hooks that act on chado_query to act on this query.
+  drupal_alter('chado_query', $copy_command, $args);
+  // Execute the command within a drush created psql session using \COPY.
+  return drush_invoke_process(
+    '@self',
+    'sql-cli',
+    array(),
+    array('extra' => '--command="\\'.$copy_command.'"')
+  );
+  */
+  
 }
 
 
