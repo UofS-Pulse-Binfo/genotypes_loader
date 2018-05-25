@@ -110,24 +110,25 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
 }
 
 /**
- * This function will copy into the database the the last remaining chunk of insert-only records
+ * Places records into a CSV file, and then checks if it is time to bulk load the file via a COPY command
  * 
+ * @param $record_count
+ *   The current count (less than the copy_chunk_size) of records that are being loaded in.
  * @param $record_type
  *   A human-readable term for your record for error messages.
  * @param $table
  *   The chado table to insert into.
  * @param $insert_values
  *   An array of [table column] => [value] mappings that is specific to the insert.
- * @param $record_count
- *   The current count (less than the copy_chunk_size) of records that are being loaded in.
  * @param $file_name
  *   An optional name for the file to write the values to
  * @return
- *   TRUE if success, FALSE if failed.
+ *   TRUE if success (meaning, we reached the end of the function, not neccesarily that everything went swimmingly), FALSE if failed.
  */
 
-function genotypes_loader_helper_copy_records($record_type, $table, $insert_values = array(), $record_count = NULL, $file_name = NULL) {
+function genotypes_loader_helper_copy_records($record_count, $record_type, $table, $insert_values = array(), $file_name = NULL) {
   
+  // The number of records we want to reach before copying them in all at once
   $copy_chunk_size = 5;
   
   // If we weren't given the name of the file to copy from, then try to find it using the record_type and table name
@@ -150,11 +151,14 @@ function genotypes_loader_helper_copy_records($record_type, $table, $insert_valu
   if ($record_count%$copy_chunk_size == 0) {
     // Determine the COPY Command using the keys of the values array (i.e. the fields)
     // and the file name.
+    //$copy_command = 'COPY chado.' . $table . ' (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
+    //drush_print("The copy command: " . $copy_command);
     
     // Use drush to determine the connection details and then execute the command.
-    
-    drush_print("Yippee, copying in " . $record_count . " records now!");
     fclose($file_handle);
+    drush_print("Yippee, copying in " . $record_count . " records now!");
+    
+    // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
     //fclose($file_handle);
   }
@@ -163,6 +167,13 @@ function genotypes_loader_helper_copy_records($record_type, $table, $insert_valu
   
   
 }
+
+function genotypes_loader_execute_copy_command($copy_command) {
+
+  // Use drush to determine the connection details and then execute the command.
+}
+
+
 
 
 /**
