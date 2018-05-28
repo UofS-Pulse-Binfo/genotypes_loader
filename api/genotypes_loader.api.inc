@@ -151,7 +151,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   if ($record_count%$copy_chunk_size == 0) {
     // Determine the COPY Command using the keys of the values array (i.e. the fields)
     // and the file name.
-    //$copy_command = 'COPY chado.' . $table . ' (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
+    //$copy_command = 'COPY {' . $table . '} (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
     //drush_print("The copy command: " . $copy_command);
     
     fclose($file_handle);
@@ -180,25 +180,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
  *   The full PostgreSQL copy command to be executed.
  */
 function genotypes_loader_remote_copy($copy_command) {
-  /**
-   * The following is the remote copy function used by the nd_genotypes module
-   * 
-  // Prefix the tables with their correct schema.
-  // Chado tables should be enclosed in curly brackets (ie: {feature} )
-  // and Drupal tables should be enclosed in square brackets (ie: [tripal_jobs] ).
-  $chado_schema_name = tripal_get_schema_name('chado');
-  $drupal_schema_name = tripal_get_schema_name('drupal');
-  $copy_command = preg_replace('/\{(.*?)\}/', $chado_schema_name.'.$1', $copy_command);
-  $copy_command = preg_replace('/\[(\w+)\]/', $drupal_schema_name.'.$1', $copy_command);
-  // Substitute any arguements for placeholders.
-  foreach ($args as $k => $v) {
-    if (is_string($v)) {
-      $args[$k] = "'" . $v . "'";
-    }
-  }
-  $copy_command = strtr($copy_command, $args);
-  // Allow the same hooks that act on chado_query to act on this query.
-  drupal_alter('chado_query', $copy_command, $args);
+  
   // Execute the command within a drush created psql session using \COPY.
   return drush_invoke_process(
     '@self',
@@ -206,8 +188,6 @@ function genotypes_loader_remote_copy($copy_command) {
     array(),
     array('extra' => '--command="\\'.$copy_command.'"')
   );
-  */
-  
 }
 
 

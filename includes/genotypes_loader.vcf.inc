@@ -274,14 +274,14 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       );
 
       // Insert genotypes based on the preferred storage method
-      // @TODO: ND genotypes option - deprecating this in the future?
-      if ($options['storage_method'] == 'nd_geolocation') {
-        $fields['nd_geolocation'] = $options['nd_geolocation'];
-        $status = genotypes_loader_helper_add_genotypes_nd_exp($fields);
-      }
-      else if ($options['storage_method'] == 'genotype_call') {
+      if ($options['storage_method'] == 'genotype_call') {
         $fields['meta_data'] = json_encode($metadata);
         $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls);
+      }
+      // @TODO: ND genotypes option - deprecating this in the future?
+      else if ($options['storage_method'] == 'nd_geolocation') {
+        $fields['nd_geolocation'] = $options['nd_geolocation'];
+        $status = genotypes_loader_helper_add_genotypes_nd_exp($fields);
       }
       else if ($options['storage_method'] == 'stock_genotype') {
         $status = genotypes_loader_helper_add_genotypes_stock_genotype($fields);
