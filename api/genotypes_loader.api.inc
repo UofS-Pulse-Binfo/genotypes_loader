@@ -113,7 +113,7 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
  * Places records into a CSV file, and then checks if it is time to bulk load the file via a COPY command
  * 
  * @param $record_count
- *   The current count (less than the copy_chunk_size) of records that are being loaded in.
+ *   The current count of records that are being loaded in.
  * @param $record_type
  *   A human-readable term for your record for error messages.
  * @param $table
@@ -122,11 +122,13 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
  *   An array of [table column] => [value] mappings that is specific to the insert.
  * @param $file_name
  *   An optional name for the file to write the values to
+ * @param $final_chunk
+ *   If set to true, then the remaining genotypes have been added to the file and it is time to copy them in.
  * @return
  *   TRUE if success (meaning, we reached the end of the function, not neccesarily that everything went swimmingly), FALSE if failed.
  */
 
-function genotypes_loader_helper_copy_records($record_count, $record_type, $table, $insert_values = array(), $file_name = NULL) {
+function genotypes_loader_helper_copy_records($record_count, $record_type, $table, $insert_values = array(), $file_name = NULL, $final_chunk = FALSE) {
   
   // The number of records we want to reach before copying them in all at once
   $copy_chunk_size = 5;
@@ -140,26 +142,35 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     $file_name = $file_stub . $table . '-' . $record_type . '.csv';
   }
   
-  // Now open the file to write to since this is needed by fputcsv.
+  // If this is the last chunk to be entered into the database, then we don't have a record to add to the file.
+  // Otherwise, open the file to write to since this is needed by fputcsv.
   // @TODO "Lacey: I'm concerned this might be a point of slowness. Perhaps there is a better
   //       way to create CSV that doesn't require fputcsv and is more reliable
   //       then simply imploding the values with comma's in-between."
-  $file_handle = fopen($file_name, 'a') or die ("ERROR: Unable to create $file_name to bulk load records!\n");;
-  ksort($insert_values); // to ensure they're always in the same order.
-  fputcsv($file_handle, $insert_values);
+  if (!$final_chunk) {
+    // If we don't have a record to load in, something has defintiely gone wrong
+    if ($record_count == 0) {
+      return drush_set_error(dt('There is no genotype call to print to @filename', array('@filename' => $file_name)));
+    }
+    $file_handle = fopen($file_name, 'a') or die ("ERROR: Unable to create $file_name to bulk load records!\n");;
+    ksort($insert_values); // to ensure they're always in the same order.
+    fputcsv($file_handle, $insert_values);
+    fclose($file_handle);
+  }
   
-  if ($record_count%$copy_chunk_size == 0) {
+  if (($record_count%$copy_chunk_size == 0) || ($final_chunk)) {
     // Determine the COPY Command using the keys of the values array (i.e. the fields)
     // and the file name.
     //$copy_command = 'COPY {' . $table . '} (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
     //drush_print("The copy command: " . $copy_command);
     
-    fclose($file_handle);
     drush_print("Yippee, copying in " . $record_count . " records now!");
     
     // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
-    //fclose($file_handle);
+    fclose($file_handle);
+    
+    drush_log("Copied in " . $record_count . " records.");
   }
   
   return TRUE;
@@ -332,7 +343,7 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0)
     'meta_data' => $v['meta_data'],
   );
   
-  $status = genotypes_loader_helper_copy_records('Genotype Call', 'genotype_call', $insert_values, $num_calls);
+  $status = genotypes_loader_helper_copy_records($num_calls, 'Genotype Call', 'genotype_call', $insert_values);
   
   
 //  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);

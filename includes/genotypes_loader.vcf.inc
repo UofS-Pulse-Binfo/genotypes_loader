@@ -298,7 +298,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
-//     $status = genotypes_loader_helper__copy_records($num_calls);
+     $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), NULL, TRUE);
   }
   
   // If we got here without returning an error then we completed successfully!
