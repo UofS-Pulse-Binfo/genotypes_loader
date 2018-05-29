@@ -51,6 +51,11 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   $select_only = 0;
   $insert_only = 1;
   $both = 2;
+  
+  // Set the file name to be used for remote copy
+  if ($options['storage_method'] == 'genotype_call') {
+    $remote_copy_filename = '/tmp/genotypes_loader.remotecopy.csv';
+  }
 
   // -------------------------
   //    PROCESSING VCF FILE
@@ -276,7 +281,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       // Insert genotypes based on the preferred storage method
       if ($options['storage_method'] == 'genotype_call') {
         $fields['meta_data'] = json_encode($metadata);
-        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls);
+        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
       }
       // @TODO: ND genotypes option - deprecating this in the future?
       else if ($options['storage_method'] == 'nd_geolocation') {
@@ -298,7 +303,8 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
-     $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), NULL, TRUE);
+    drush_print("\nCopying in the final batch of calls...");
+    $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
   
   // If we got here without returning an error then we completed successfully!

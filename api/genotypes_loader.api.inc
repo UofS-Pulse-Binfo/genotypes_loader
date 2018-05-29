@@ -164,8 +164,6 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     //$copy_command = 'COPY {' . $table . '} (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
     //drush_print("The copy command: " . $copy_command);
     
-    drush_print("Yippee, copying in " . $record_count . " records now!");
-    
     // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
     fclose($file_handle);
@@ -314,10 +312,14 @@ function genotypes_loader_helper_add_genotypes_nd_exp($v) {
  *    - stock_name: the name of the sample.
  *    - allele: the allele call.
  *    - meta_data: any additional data associated with a genotype, in the format of a JSON blob
+ * @param $num_calls
+ *   The number of genotype calls processed so far
+ * @param $file_name
+ *   The name of the output file for records to be inserted into the database in batches
  * @return
  *   TRUE if successful and FALSE otherwise.
  */
-function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0) {
+function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0, $file_name = NULL) {
 
   // Set some variables to abstract mode for genotypes_loader_helper_add_record_with_mode().
   $select_only = 0;
@@ -343,7 +345,7 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0)
     'meta_data' => $v['meta_data'],
   );
   
-  $status = genotypes_loader_helper_copy_records($num_calls, 'Genotype Call', 'genotype_call', $insert_values);
+  $status = genotypes_loader_helper_copy_records($num_calls, 'Genotype Call', 'genotype_call', $insert_values, $file_name);
   
   
 //  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
