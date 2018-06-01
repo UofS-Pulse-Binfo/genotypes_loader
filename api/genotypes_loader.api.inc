@@ -159,10 +159,20 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   }
   
   if (($record_count%$copy_chunk_size == 0) || ($final_chunk)) {
-    // Determine the COPY Command using the keys of the values array (i.e. the fields)
-    // and the file name.
-    //$copy_command = 'COPY {' . $table . '} (' . implode(',', array_keys($values) . ") FROM '$file_name' WITH CSV";
+    // Determine the COPY Command using the table (though we are hard-coding the keys for security reasons) and the file name.
+    // Columns are listed in alphabetical order because we used ksort() before printing the values to a file.
+    $copy_command = "COPY chado.genotype_call (
+      genotype_id,
+      marker_id,
+      meta_data,
+      project_id,
+      stock_id,
+      variant_id)
+      FROM '$file_name' WITH CSV";
     //drush_print("The copy command: " . $copy_command);
+    genotypes_loader_remote_copy($copy_command);
+
+    drush_print("Copied in $record_count records.");
     
     // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
