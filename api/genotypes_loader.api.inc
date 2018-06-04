@@ -159,7 +159,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   }
   
   if (($record_count%$copy_chunk_size == 0) || ($final_chunk)) {
-    // Determine the COPY Command using the table (though we are hard-coding the keys for security reasons) and the file name.
+    // Write out the COPY command
     // Columns are listed in alphabetical order because we used ksort() before printing the values to a file.
     $copy_command = "COPY chado.genotype_call (
       genotype_id,
@@ -168,11 +168,9 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
       project_id,
       stock_id,
       variant_id)
-      FROM '$file_name' WITH CSV";
-    //drush_print("The copy command: " . $copy_command);
-    genotypes_loader_remote_copy($copy_command);
+      FROM STDIN WITH CSV";
 
-    drush_print("Copied in $record_count records.");
+    genotypes_loader_remote_copy($copy_command, $file_name);
     
     // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
@@ -197,16 +195,28 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
  *
  * @param $copy_command
  *   The full PostgreSQL copy command to be executed.
+ * @param $file_name
+ *   The name of the file from which COPY gets its contents to copy into the database
  */
-function genotypes_loader_remote_copy($copy_command) {
+function genotypes_loader_remote_copy($copy_command, $file_name) {
   
   // Execute the command within a drush created psql session using \COPY.
-  return drush_invoke_process(
+  $connection_string = `drush sql-connect`;
+  $connection_string = trim($connection_string);
+  $command = $connection_string . ' -c "\\' . $copy_command . '" < ' . $file_name;
+  
+  // Execute the command
+  //return `$command`;
+  drush_print("The copy command: " . $command);
+  
+  
+  /*return drush_invoke_process(
     '@self',
     'sql-cli',
     array(),
     array('extra' => '--command="\\'.$copy_command.'"')
   );
+  */
 }
 
 
