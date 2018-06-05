@@ -6,7 +6,7 @@
 
 /**
  * Determines the correct postgreSQL version, otherwise assumes version 9.2.
- * 
+ *
  * @return
  *   The numbered version of PostgreSQL (ex. 9.2, 9.3, etc)
  */
@@ -17,7 +17,7 @@ function genotypes_loader_recheck_postgresql_version() {
     $version = $matches[1];
   }
   variable_set('pgsql_version', $version);
-  
+
   return $version;
 }
 
@@ -55,18 +55,18 @@ function genotypes_loader_get_postgresql_version() {
   */
 
 function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
-  
+
   // Set some variables to abstract mode
   $select_only = 0;
   $insert_only = 1;
   $both = 2;
-  
+
   // the name of the primary key.
   $pkey = $table . '_id';
-      
+
   // First we select the record to see if it already exists.
-  $record = chado_select_record($table, array($pkey), $select_values); 
-  
+  $record = chado_select_record($table, array($pkey), $select_values);
+
   // If it exists and the mode is 1 (Insert Only) then return an error to drush.
   if (sizeof($record) == 1) {
     if ($mode == $insert_only) {
@@ -77,22 +77,22 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
       return $record[0]->{$pkey};
     }
   }
-    
+
   // If more then one result is returned then this is NOT UNIQUE and we should report an
   // error to the user - not just run with the first one.
   elseif (sizeof($record) > 1) {
     return drush_set_error(dt('Record "@record_type" is not unique. (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($select_values,TRUE));
   }
-  
+
   // If there is no pre-existing sample but we've been given permission to create it,
   // then insert it
   elseif ($mode == $both) {
-    
+
     // If we want to insert values, we can merge our values to have all the information we need
     $values = array_merge($select_values, $insert_values);
-    
+
     $record = chado_insert_record($table, $values);
-    
+
     // If the primary key is available then the insert worked and we can return it.
     if (isset($record[$pkey])) {
       return $record[$pkey];
@@ -111,7 +111,7 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
 
 /**
  * Places records into a CSV file, and then checks if it is time to bulk load the file via a COPY command
- * 
+ *
  * @param $record_count
  *   The current count of records that are being loaded in.
  * @param $record_type
@@ -129,10 +129,10 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
  */
 
 function genotypes_loader_helper_copy_records($record_count, $record_type, $table, $insert_values = array(), $file_name = NULL, $final_chunk = FALSE) {
-  
+
   // The number of records we want to reach before copying them in all at once
-  $copy_chunk_size = 5;
-  
+  $copy_chunk_size = 10000;
+
   // If we weren't given the name of the file to copy from, then try to find it using the record_type and table name
   // that we were given
   if ($file_name === NULL) {
@@ -141,7 +141,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     $record_type = strtolower($record_type);
     $file_name = $file_stub . $table . '-' . $record_type . '.csv';
   }
-  
+
   // If this is the last chunk to be entered into the database, then we don't have a record to add to the file.
   // Otherwise, open the file to write to since this is needed by fputcsv.
   // @TODO "Lacey: I'm concerned this might be a point of slowness. Perhaps there is a better
@@ -157,7 +157,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     fputcsv($file_handle, $insert_values);
     fclose($file_handle);
   }
-  
+
   if (($record_count%$copy_chunk_size == 0) || ($final_chunk)) {
     // Write out the COPY command
     // Columns are listed in alphabetical order because we used ksort() before printing the values to a file.
@@ -171,16 +171,16 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
       FROM STDIN WITH CSV";
 
     genotypes_loader_remote_copy($copy_command, $file_name);
-    
+
     // Wipe the file clean by reopening it as write-only
     $file_handle = fopen($file_name, 'w');
     fclose($file_handle);
-    
+
     drush_log("Copied in " . $record_count . " records.");
   }
-  
+
   return TRUE;
-  
+
 }
 
 /**
@@ -199,24 +199,15 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
  *   The name of the file from which COPY gets its contents to copy into the database
  */
 function genotypes_loader_remote_copy($copy_command, $file_name) {
-  
-  // Execute the command within a drush created psql session using \COPY.
+
+  // Setup the command within a drush created psql session using \COPY.
   $connection_string = `drush sql-connect`;
   $connection_string = trim($connection_string);
   $command = $connection_string . ' -c "\\' . $copy_command . '" < ' . $file_name;
-  
+
   // Execute the command
-  //return `$command`;
-  drush_print("The copy command: " . $command);
-  
-  
-  /*return drush_invoke_process(
-    '@self',
-    'sql-cli',
-    array(),
-    array('extra' => '--command="\\'.$copy_command.'"')
-  );
-  */
+  return `$command`;
+
 }
 
 
@@ -364,10 +355,10 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
     'stock_id' => $v['stock_id'],
     'meta_data' => $v['meta_data'],
   );
-  
+
   $status = genotypes_loader_helper_copy_records($num_calls, 'Genotype Call', 'genotype_call', $insert_values, $file_name);
-  
-  
+
+
 //  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
 //  if (!$genotype_call_id) return FALSE;
 
