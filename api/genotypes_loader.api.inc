@@ -32,6 +32,10 @@ function genotypes_loader_get_postgresql_version() {
  * Adds/Selects a record based on the mode. Helper function for loading genotype matrix
  * that does the select/insert based on mode logic.
  *
+ * @TODO: Give the different errors that are possible separate error codes. Also allow a parameter to be given to
+ * either "handle errors" or not- this way, if we see a certain error (such as not unique), we can handle it
+ * from outside of the function.
+ *
  * @param $record_type
  *   A human-readable term for your record for error messages.
  * @param $table
@@ -39,21 +43,14 @@ function genotypes_loader_get_postgresql_version() {
  * @param $mode
  *   One of 0: Select Only, 1: Insert Only, 2: Insert & Select.
  * @param $select_values
- *   An array of [table column] => [value] mappings. These will be used for both the
- *   select and the insert.
+ *   An array of [table column] => [value] mappings. These values will be used for both the
+ *   select and the insert, but are specific to select
  * @param $insert_values
- *   An array of [table column] => [value] mappings that is specific to the insert.
+ *   An array of [table column] => [value] mappings that is specific to the insert. This is not required if mode is
+ *   select only, and will be combined with select values for an insert.
  * @return
  *   The value of the primary key for the inserted/selected record or FALSE if failed.
  */
-
- /**
-  *  @TODO: Give the different errors that are possible separate error codes. Also allow a parameter to be given to
-  *  either "handle errors" or not- this way, if we see a certain error (such as not unique), we can handle it
-  *  from outside of the function.
-  *
-  */
-
 function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mode, $select_values, $insert_values = array()) {
 
   // Set some variables to abstract mode
@@ -127,7 +124,6 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
  * @return
  *   TRUE if success (meaning, we reached the end of the function, not neccesarily that everything went swimmingly), FALSE if failed.
  */
-
 function genotypes_loader_helper_copy_records($record_count, $record_type, $table, $insert_values = array(), $file_name = NULL, $final_chunk = FALSE) {
 
   // The number of records we want to reach before copying them in all at once
@@ -180,18 +176,16 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   }
 
   return TRUE;
-
 }
 
 /**
  * Uses drush to safely copy data quickly. ONLY USE IN TRIPAL JOBS!!
  *
- * PostgreSQL COPY is extremely effective at copying/inserting large amount of
- * data. This modules uses it to create materialized views to cache queries
- * for faster data access. However, using chado_query('COPY...') poses many
- * security risks in a web setting. We use a combination of drush sql-cli,
- * which opens a psql session, and psql's \copy command to take advantage of
- * the fact that Tripal Jobs are run on the command-line.
+ * PostgreSQL COPY is extremely effective at copying/inserting large amounts of
+ * data. This modules uses it to make inserting massive genotype files more efficient.
+ * However, using chado_query('COPY...') poses many security risks in a web setting.
+ * Instead we use Drupal to determine the psql connection string, and psql's \copy command
+ * to take advantage of the fact that Tripal Jobs are run on the command-line.
  *
  * @param $copy_command
  *   The full PostgreSQL copy command to be executed.
@@ -209,9 +203,6 @@ function genotypes_loader_remote_copy($copy_command, $file_name) {
   return `$command`;
 
 }
-
-
-
 
 /**
  * Adds genotype records when using the ND Experiment Tables storage method. This is a
@@ -358,10 +349,6 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
 
   $status = genotypes_loader_helper_copy_records($num_calls, 'Genotype Call', 'genotype_call', $insert_values, $file_name);
 
-
-//  $genotype_call_id = genotypes_loader_helper_add_record_with_mode('Genotype Call', 'genotype_call', $both, $select_values, $insert_values);
-//  if (!$genotype_call_id) return FALSE;
-
   return TRUE;
 }
 
@@ -436,7 +423,6 @@ function genotypes_loader_helper_add_genotypes_stock_genotype($v) {
  *   An optional message that allows the user to print a message to the screen next to the
  *   progress bar at a particular step.
  */
-
 function genotypes_loader_print_progress($step_count, $num_steps, $message = "")
 {
     // Calculate percentage of steps completed
@@ -461,4 +447,3 @@ function genotypes_loader_print_progress($step_count, $num_steps, $message = "")
 
     return $output;
 }
-
