@@ -58,7 +58,8 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     // to another database (yes, I speak from experience)
     global $databases;
     $db_name = $databases['default']['default']['database'];
-    $remote_copy_filename = '/tmp/genotypes_loader.' . $db_name . '.remotecopy.csv';
+    $table_name = 'genotype_call';
+    $remote_copy_filename = '/tmp/genotypes_loader.' . $db_name . '-' . $table_name . '.remotecopy.csv';
   }
 
   // -------------------------

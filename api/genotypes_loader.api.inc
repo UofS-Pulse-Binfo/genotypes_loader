@@ -132,10 +132,15 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
   // If we weren't given the name of the file to copy from, then try to find it using the record_type and table name
   // that we were given
   if ($file_name === NULL) {
+    // Pull out the name of the database to ensure the file is not overwritten by a concurrent upload
+    // to another database
+    global $databases;
+    $db_name = $databases['default']['default']['database'];
+
     $file_stub = '/tmp/genotype_loader.';
     $record_type = str_replace(' ', '_', $record_type);
     $record_type = strtolower($record_type);
-    $file_name = $file_stub . $table . '-' . $record_type . '.csv';
+    $file_name = $file_stub . $db_name . '-' . $table . '-' . $record_type . '.remotecopy.csv';
   }
 
   // If this is the last chunk to be entered into the database, then we don't have a record to add to the file.
