@@ -51,10 +51,14 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   $select_only = 0;
   $insert_only = 1;
   $both = 2;
-  
+
   // Set the file name to be used for remote copy
   if ($options['storage_method'] == 'genotype_call') {
-    $remote_copy_filename = '/tmp/genotypes_loader.remotecopy.csv';
+    // Pull out the name of the database to ensure the file is not overwritten by a concurrent upload
+    // to another database (yes, I speak from experience)
+    global $databases;
+    $db_name = $databases['default']['default']['database'];
+    $remote_copy_filename = '/tmp/genotypes_loader.' . $db_name . '.remotecopy.csv';
   }
 
   // -------------------------
@@ -80,7 +84,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
   print($progress);
-  
+
   // Start the counter for number of (non-empty) genotypic calls
   $num_calls = 0;
 
@@ -258,7 +262,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       // If $allele is empty, it means we have missing data for this genotype (ie. ./.)
       // Thus, skip this particular genotype and move onto the next.
       if (!$allele) { continue; }
-      
+
       // Since it is non-empty, increment the genotype call count
       $num_calls++;
 
@@ -300,13 +304,13 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
     print($progress);
   }
-  
+
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
     drush_print("\nCopying in the final batch of calls...");
     $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
-  
+
   // If we got here without returning an error then we completed successfully!
   drush_log("Loading Complete.", "success");
 
