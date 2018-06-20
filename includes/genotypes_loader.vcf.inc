@@ -52,6 +52,16 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   $insert_only = 1;
   $both = 2;
 
+  // Set the file name to be used for remote copy
+  if ($options['storage_method'] == 'genotype_call') {
+    // Pull out the name of the database to ensure the file is not overwritten by a concurrent upload
+    // to another database (yes, I speak from experience)
+    global $databases;
+    $db_name = $databases['default']['default']['database'];
+    $table_name = 'genotype_call';
+    $remote_copy_filename = '/tmp/genotypes_loader.' . $db_name . '-' . $table_name . '.remotecopy.csv';
+  }
+
   // -------------------------
   //    PROCESSING VCF FILE
   // -------------------------
@@ -75,6 +85,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
   print($progress);
+
+  // Start the counter for number of (non-empty) genotypic calls
+  $num_calls = 0;
 
   // Now going line by line to pull out the marker, then genotypes.
   while(!feof($VCFfile)) {
@@ -251,6 +264,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       // Thus, skip this particular genotype and move onto the next.
       if (!$allele) { continue; }
 
+      // Since it is non-empty, increment the genotype call count
+      $num_calls++;
+
       $fields = array(
         'project_id' => $options['project_id'],
         'project_name' => $options['project_name'],
@@ -267,9 +283,19 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
         'allele' => $allele,
       );
 
-      if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
-      if ($options['storage_method'] == 'genotype_call') $fields['meta_data'] = json_encode($metadata);
-      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      // Insert genotypes based on the preferred storage method
+      if ($options['storage_method'] == 'genotype_call') {
+        $fields['meta_data'] = json_encode($metadata);
+        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
+      }
+      // @TODO: ND genotypes option - deprecating this in the future?
+      else if ($options['storage_method'] == 'nd_geolocation') {
+        $fields['nd_geolocation'] = $options['nd_geolocation'];
+        $status = genotypes_loader_helper_add_genotypes_nd_exp($fields);
+      }
+      else if ($options['storage_method'] == 'stock_genotype') {
+        $status = genotypes_loader_helper_add_genotypes_stock_genotype($fields);
+      }
       // @TODO: Return a useful error message
       if (!$status) { return FALSE; }
     }
@@ -279,6 +305,13 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
     print($progress);
   }
+
+  // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
+  if ($options['storage_method'] == 'genotype_call') {
+    drush_print("\nCopying in the final batch of calls...");
+    $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
+  }
+
   // If we got here without returning an error then we completed successfully!
   drush_log("Loading Complete.", "success");
 
