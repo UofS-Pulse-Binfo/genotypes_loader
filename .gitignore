@@ -1,0 +1,3 @@
+gnore PHPUnit Test vendor scripts & environment info.
+.env
+vendor/
