@@ -152,6 +152,8 @@ prevalent organism here, and anything in the file will take precedence over it.:
   );
   if (isset($options['nd_geolocation'])) $options['nd_geolocation'] = $nd_geolocation;
 
+  print_r($options);
+
   genotypes_loader_load_genotypes($input_file, $sample_file, $options);
 
 }
@@ -206,6 +208,9 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
     array('name' => variable_get('genotypes_featureprop_type', 'marker_type'), 'cv_name' => 'feature_property'),
   );
+
+  print_r($terms);
+
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   $types = array();
   foreach ($terms as $d) {
@@ -217,9 +222,10 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         array('@type' => $term, '@cv_name' => $cv_name,)));
     }
   }
+  print_r($types);
 
   // ----- ORGANISM NAME -----
-  // This is the organism for which the chromosome/variants/markers are located on its genome, since multiple organisms 
+  // This is the organism for which the chromosome/variants/markers are located on its genome, since multiple organisms
   // may be present in the input file but only one organism's genome would have had the sequence aligned to it.
   $organism_name = chado_query(
      "SELECT organism.genus||' '||organism.species
@@ -275,15 +281,15 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $sample_accession = array_shift($current_line);
     $germplasm_name = array_shift($current_line);
     $germplasm_accession = array_shift($current_line);
-    
+
     // Setting the following as defaults if the 6th and/or 7th columns are not provided
     $germplasm_type = 'Individual';
     $organism_id = $options['organism_id'];
-    
+
     // User can optionally supply a stock_type for each germplasm if they are inserting
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
-      
+
       if (!$types[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
@@ -294,7 +300,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
       }
     }
-    
+
     // User can optionally supply an organism for each germplasm if they are inserting germplasm into the database.
     // We need to allow spaces in the genus and species, so use a custom query to check that what the user
     // input matches what is in the database.
@@ -334,7 +340,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
       'uniquename' => $germplasm_accession,
       // @ASSUMPTION: If a germplasm already exists, we don't assume its type, but we do require
-      //              a type if we're inserting. So unless it was specified in the samples list, we 
+      //              a type if we're inserting. So unless it was specified in the samples list, we
       //              are assuming type 'Individual'. Ideally, this user could provide the default type
       //              as an option like with organism. *wink wink nudge nudge*
       'type_id' => $types[$germplasm_type],
@@ -342,7 +348,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     ), array(
       'name' => $germplasm_name,
     ));
-    
+
     if (!$germplasm_id) { return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession))); }
 //    drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
 

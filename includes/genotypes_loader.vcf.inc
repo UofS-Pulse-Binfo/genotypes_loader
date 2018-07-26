@@ -127,6 +127,14 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     ));
     if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
 
+    // ----- Variant Type -----
+    $variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
+      'feature_id' => $variant_id,
+      'type_id' => $types['variant_type'],
+      'value' => $options['variant_type'],
+    ));
+    if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
+
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
@@ -285,8 +293,8 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
 
       // Insert genotypes based on the preferred storage method
       if ($options['storage_method'] == 'genotype_call') {
-        $fields['meta_data'] = json_encode($metadata);
-        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
+        //$fields['meta_data'] = json_encode($metadata);
+        //$status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
       }
       // @TODO: ND genotypes option - deprecating this in the future?
       else if ($options['storage_method'] == 'nd_geolocation') {
@@ -309,7 +317,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
     drush_print("\nCopying in the final batch of calls...");
-    $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
+    //$status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
 
   // If we got here without returning an error then we completed successfully!
