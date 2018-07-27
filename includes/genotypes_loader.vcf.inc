@@ -128,12 +128,12 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
 
     // ----- Variant Type -----
-    $variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
-      'feature_id' => $variant_id,
-      'type_id' => $types['variant_type'],
-      'value' => $options['variant_type'],
-    ));
-    if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
+    //$variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
+    //  'feature_id' => $variant_id,
+    //  'type_id' => $types['variant_type'],
+    //  'value' => $options['variant_type'],
+    //));
+    //if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
 
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
@@ -163,7 +163,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       '@marker' => $marker_name)));
     }
 
-    // ----- Locate the variant on chromosome -----
+    // ----- Locate Variant on Chromosome -----
     $status = genotypes_loader_helper_add_record_with_mode('Variant location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $variant_id,
       'srcfeature_id' => $chromosome_id,
@@ -175,7 +175,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       '@backbone' => $backbone_name)));
     }
 
-    // Locate the marker on chromosome.
+    // ----- Locate Marker on Chromosome -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $marker_id,
       'srcfeature_id' => $chromosome_id,

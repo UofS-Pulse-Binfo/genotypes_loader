@@ -200,29 +200,31 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   );
 
   // ----- TYPE IDs -----
-  $terms = array(
-    array('name' => variable_get('genotypes_sample_type', 'genomic_DNA'), 'cv_name' => 'sequence'),
-    array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship'),
-    array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship'),
-    array('name' => $options['variant_type'], 'cv_name' => 'sequence'),
-    array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence'),
-    array('name' => variable_get('genotypes_featureprop_type', 'marker_type'), 'cv_name' => 'feature_property'),
-  );
+  // @TODO: Make CVs configurable. See comment below!
+  $terms = array();
+  $terms['sample_type'] = array('name' => variable_get('genotypes_sample_type', 'genomic_DNA'), 'cv_name' => 'sequence');
+  $terms['sample_germplasm_relationship'] = array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship');
+  $terms['marker_variant_relationship'] = array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship');
+  $terms['variant_type'] = array('name' => $options['variant_type'], 'cv_name' => 'sequence');
+  $terms['marker_type'] = array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence');
+  // For our purposes, additionalType is the cv term used for both markers and variants. This desperately calls for the ability for users to change
+  // the CV which they are pulling from since additionalType is the only useful term in its CV.
+  $terms['free_text_marker_type'] = array('name' => variable_get('genotypes_marker_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
+  $terms['free_text_variant_type'] = array('name' => variable_get('genotypes_variant_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
 
   print_r($terms);
 
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
-  $types = array();
-  foreach ($terms as $d) {
-    $term = $d['name'];
-    $cv_name = $d['cv_name'];
-    $types[$term] = chado_query($type_query, array(':name' => $term, ':cv_name' => $d['cv_name']))->fetchField();
-    if (!$types[$term]) {
-      return drush_set_error(dt("ERROR: Could not find type '@type' with vocabulary '@cv_name'.",
-        array('@type' => $term, '@cv_name' => $cv_name,)));
+  foreach ($terms as $key => $values) {
+    $term = $values['name'];
+    $cv_name = $values['cv_name'];
+    $terms[$key]['cvterm_id'] = chado_query($type_query, array(':name' => $term, ':cv_name' => $cv_name))->fetchField();
+    if (!$terms[$key]['cvterm_id']) {
+      return drush_set_error(dt("ERROR: Could not find type '@term' with vocabulary '@cv_name'.",
+        array('@term' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  print_r($types);
+  print_r($terms);
 
   // ----- ORGANISM NAME -----
   // This is the organism for which the chromosome/variants/markers are located on its genome, since multiple organisms
