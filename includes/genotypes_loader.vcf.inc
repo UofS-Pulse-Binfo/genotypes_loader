@@ -28,12 +28,15 @@
  *        one of 0: Select Only, 1: Insert Only, 2: Insert & Select.
  *     - nd_geolocation: nd_geolocation.description; only if the ND Experiment storage
  *        method is chosen.
- * @param $types
- *  An associative array of types and their type IDs in Chado which are required by the loader,
- *  such as types of features and stocks.
+ * @param $terms
+ *  An associative array of cvterms and their IDs in Chado which are required by the loader,
+ *  such as types of features and stocks, and relationships.
  */
 
-function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
+function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
+
+print_r($options);
+print_r($terms);
 
   // Open our VCF file and iterate through meta lines until we reach our header
   $VCFfile = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
@@ -123,7 +126,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       'name' => $variant_name,
       'uniquename' => $variant_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['variant_type'] ]
+      'type_id' => $terms[ $options['variant_type'] ],
     ));
     if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
 

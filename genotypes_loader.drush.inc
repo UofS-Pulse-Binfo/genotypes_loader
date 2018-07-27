@@ -152,8 +152,6 @@ prevalent organism here, and anything in the file will take precedence over it.:
   );
   if (isset($options['nd_geolocation'])) $options['nd_geolocation'] = $nd_geolocation;
 
-  print_r($options);
-
   genotypes_loader_load_genotypes($input_file, $sample_file, $options);
 
 }
@@ -212,8 +210,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   $terms['free_text_marker_type'] = array('name' => variable_get('genotypes_marker_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
   $terms['free_text_variant_type'] = array('name' => variable_get('genotypes_variant_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
 
-  print_r($terms);
-
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   foreach ($terms as $key => $values) {
     $term = $values['name'];
@@ -224,7 +220,6 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         array('@term' => $term, '@cv_name' => $cv_name,)));
     }
   }
-  print_r($terms);
 
   // ----- ORGANISM NAME -----
   // This is the organism for which the chromosome/variants/markers are located on its genome, since multiple organisms
@@ -292,14 +287,15 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     if ($num_columns >= 6) {
       $germplasm_type = array_shift($current_line);
 
-      if (!$types[$germplasm_type]) {
+      if (!$terms[$germplasm_type]) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
         $cv_name = 'stock_type';
-        $types[$germplasm_type] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
+        $terms[$germplasm_type] = array('name' => $germplasm_type, 'cv_name' => $cv_name);
+        $terms[$germplasm_type]['cvterm_id'] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
-      if (!$types[$germplasm_type]) {
-        return drush_set_error(dt("ERROR: Could not find germplasm type '@type' with the vocabulary '@cv_name'.", array('@type' => $germplasm_type, '@cv_name' => $cv_name,)));
+      if (!$terms[$germplasm_type]['cvterm_id']) {
+        return drush_set_error(dt("ERROR: Could not find germplasm type '@term' with the vocabulary '@cv_name'.", array('@term' => $germplasm_type, '@cv_name' => $cv_name,)));
       }
     }
 
@@ -331,7 +327,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'uniquename' => $sample_accession,
       'organism_id' => $organism_id,
       // @ASSUMPTION: The original stock for which the marker is associated to is of type 'genomic_DNA'.
-      'type_id' => $types['genomic_DNA'],
+      'type_id' => $terms['sample_type']['cvterm_id'],
     ), array(
       'name' => $sample_name,
     ));
@@ -345,7 +341,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       //              a type if we're inserting. So unless it was specified in the samples list, we
       //              are assuming type 'Individual'. Ideally, this user could provide the default type
       //              as an option like with organism. *wink wink nudge nudge*
-      'type_id' => $types[$germplasm_type],
+      'type_id' => $terms[$germplasm_type]['cvterm_id'],
       'organism_id' => $organism_id,
     ), array(
       'name' => $germplasm_name,
@@ -357,7 +353,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     // ----- GERMPLASM TO SAMPLE LINK -----
     $status = genotypes_loader_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', $both, array(
       'subject_id' => $stock_id,
-      'type_id' => $types['is_extracted_from'],
+      'type_id' => $terms['sample_germplasm_relationship']['cvterm_id'],
       'object_id' => $germplasm_id,
     ));
     if (!$status) { return drush_set_error(dt('ERROR: Could not link germplasm @germplasm to stock @sample', array(
@@ -374,6 +370,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   drush_print("  Successfully mapped stocks and germplasm.");
 
   // ----- DETECT INPUT FILE TYPE -----
+  // @TODO: Deprecate this and ask the user :'-(
   // Open the input file and try to determine which type of file it is.
   $FILE = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!\n");;
   $first_line = fgets($FILE);
@@ -408,15 +405,15 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   switch ($file_format) {
     case "vcf":
       drush_print("  Detected VCF file format. \nProceeding to load genotypes...");
-      genotypes_loader_load_VCF($input_file, $options, $types);
+      genotypes_loader_load_VCF($input_file, $options, $terms);
       break;
     case "matrix":
       drush_print("  Detected genotype matrix file format. \nProceeding to load genotypes...");
-      genotypes_loader_load_matrix($input_file, $options, $types);
+      genotypes_loader_load_matrix($input_file, $options, $terms);
       break;
     case "legacy":
       drush_print("  Detected flat file format. \nProceeding to load genotypes...");
-      genotypes_loader_load_legacy($input_file, $options, $types);
+      genotypes_loader_load_legacy($input_file, $options, $terms);
       break;
     default:
       return drush_set_error(dt("ERROR: Could not determine the format for '@file'. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.", array('@file' => $input_file)));
