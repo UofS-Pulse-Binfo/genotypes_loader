@@ -126,31 +126,31 @@ print_r($terms);
       'name' => $variant_name,
       'uniquename' => $variant_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $terms[ $options['variant_type'] ],
+      'type_id' => $terms['variant_type']['cvterm_id'],
     ));
     if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
 
     // ----- Variant Type -----
-    //$variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
-    //  'feature_id' => $variant_id,
-    //  'type_id' => $types['variant_type'],
-    //  'value' => $options['variant_type'],
-    //));
-    //if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
+    $variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
+      'feature_id' => $variant_id,
+      'type_id' => $terms['free_text_variant_type']['cvterm_id'],
+      'value' => $options['variant_type'],
+    ));
+    if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
 
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
       'uniquename' => $marker_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['feature_type_of_marker'] ]
+      'type_id' => $terms['marker_type']['cvterm_id'],
     ));
     if (!$marker_id) { return drush_set_error(dt('ERROR: Could not find a marker ID for @marker', array('@marker' => $marker_name))); }
 
     // ----- Marker Type -----
     $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
       'feature_id' => $marker_id,
-      'type_id' => $types['marker_type'],
+      'type_id' => $terms['free_text_marker_type']['cvterm_id'],
       'value' => $options['marker_type'],
     ));
     if (!$marker_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name))); }
@@ -158,7 +158,7 @@ print_r($terms);
     // ----- Link Variant to Marker -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
       'subject_id' => $marker_id,
-      'type_id' => $types['is_marker_of'],
+      'type_id' => $terms['marker_variant_relationship']['cvterm_id'],
       'object_id' => $variant_id,
     ));
     if (!$status) { return drush_set_error(dt('ERROR: Could not link variant @variant to marker @marker', array(
@@ -287,7 +287,7 @@ print_r($terms);
         'feature_type_of_marker' => $options['feature_type_of_marker'],
         'variant_id' => $variant_id,
         'variant_name' => $variant_name,
-        'variant_type_id' => $types[ $options['variant_type'] ],
+        'variant_type_id' => $terms['variant_type']['cvterm_id'],
         'variant_type' => $options['variant_type'],
         'stock_id' => $options['sample_list'][$source_name]['sample_stock_id'],
         'stock_name' => $options['sample_list'][$source_name]['sample_name'],
@@ -296,8 +296,8 @@ print_r($terms);
 
       // Insert genotypes based on the preferred storage method
       if ($options['storage_method'] == 'genotype_call') {
-        //$fields['meta_data'] = json_encode($metadata);
-        //$status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
+        $fields['meta_data'] = json_encode($metadata);
+        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
       }
       // @TODO: ND genotypes option - deprecating this in the future?
       else if ($options['storage_method'] == 'nd_geolocation') {
@@ -320,7 +320,7 @@ print_r($terms);
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
     drush_print("\nCopying in the final batch of calls...");
-    //$status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
+    $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
 
   // If we got here without returning an error then we completed successfully!
