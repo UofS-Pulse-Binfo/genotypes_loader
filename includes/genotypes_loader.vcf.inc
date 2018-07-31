@@ -35,9 +35,6 @@
 
 function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
 
-print_r($options);
-print_r($terms);
-
   // Open our VCF file and iterate through meta lines until we reach our header
   $VCFfile = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
   while(!feof($VCFfile)) {
