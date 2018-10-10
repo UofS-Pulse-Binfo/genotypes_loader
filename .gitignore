@@ -1,3 +1,4 @@
 # Gitignore PHPUnit Test vendor scripts & environment info.
 .env
 vendor/
+_build/
