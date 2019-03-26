@@ -145,7 +145,7 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => 'Feature Property: marker_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of marker.',
-    '#default_value' => variable_get('genotypes_featureprop_type_marker', 'marker_type'),
+    '#default_value' => variable_get('genotypes_featureprop_type', 'marker_type'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
     '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
@@ -155,7 +155,7 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => 'Feature Property: variant_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of variant.',
-    '#default_value' => variable_get('genotypes_featureprop_type_variant', 'variant_type'),
+    '#default_value' => variable_get('genotypes_featureprop_type', 'variant_type'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
     '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
@@ -201,13 +201,13 @@ function genotypes_loader_admin_settings_form_submit($form, &$form_state) {
     variable_set('genotypes_sample_type', $form_state['values']['sample_type']);
     variable_set('genotypes_stock_ref', $form_state['values']['stock_rel']);
     variable_set('genotypes_feature_rel', $form_state['values']['feature_rel']);
-    variable_set('genotypes_featureprop_type_marker', $form_state['values']['featureprop_type_marker']);
-    variable_set('genotypes_featureprop_type_variant', $form_state['values']['featureprop_type_variant']);
+    variable_set('genotypes_featureprop_type', $form_state['values']['featureprop_type_marker']);
+    variable_set('genotypes_featureprop_type', $form_state['values']['featureprop_type_variant']);
 
     // Next, if requested, save the new cvterms.
     if ($form_state['values']['add_cvterms']) {
 
-      foreach(array('sample_type','stock_rel','feature_rel','featureprop_type_marker','featureprop_type_variant') as $element) {
+      foreach(array('sample_type','stock_rel','feature_rel','featureprop_type') as $element) {
         if (!empty($form_state['values'][$element])) {
 
           $cv_name = $form['cvterms'][$element]['#attributes']['data-cv'];
