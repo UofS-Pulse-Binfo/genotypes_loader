@@ -10,7 +10,7 @@ class dataIntegrityTest extends TripalTestCase {
   use DBTransaction;
 
   /**
-   * Tests loading of a VCF file. 
+   * Tests loading of a VCF file.
    */
   public function testLoadVCF() {
     $faker = Factory::create();
@@ -21,6 +21,12 @@ class dataIntegrityTest extends TripalTestCase {
     $cv = chado_get_cv(['name' => 'sequence']);
     $marker_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
     $variant_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
+
+    // Ensure germplasm type exists.
+    $cv = chado_get_cv(['name' => 'stock_type']);
+    print_r($cv);
+    $germplasm_type = factory('chado.cvterm')->create(['name' => 'Individual', 'cv_id' => $cv->cv_id]);
+    print_r($germplasm_type);
 
     $project = factory('chado.project');
 
