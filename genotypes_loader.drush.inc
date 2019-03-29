@@ -164,7 +164,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // ------------------------
   //      DATA RETRIEVAL
   // ------------------------
-  drush_print("Begin validating options and samples...");
+  if (!$options['silent']) { drush_print("Begin validating options and samples..."); }
 
   // Inform the user which data loading method is being used.
   $storage_method = array(
@@ -173,7 +173,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     'stock_genotype' => 'Genotype Stock table',
     'custom' => 'Custom',
   );
-  drush_print('  Loading your data according to the "'.$storage_method[ $options['storage_method'] ].'" Method.');
+  if (!$options['silent']) { drush_print('  Loading your data according to the "'.$storage_method[ $options['storage_method'] ].'" Method.'); }
 
   // Check the custom table is there if using Method #2: Genotype Call
   if ($options['storage_method'] == 'genotype_call') {
@@ -234,7 +234,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     return drush_set_error(dt("ERROR: Could not find an organism with ID of \"@organism_id\" in the database.",
       array('@organism_id' => $options['organism_id'])));
   } else {
-    drush_print(dt("  Found organism \"@organism\" in the database.", array('@organism' => $organism_name)));
+    if (!$options['silent']) { drush_print(dt("  Found organism \"@organism\" in the database.", array('@organism' => $organism_name))); }
   }
 
   // ----- PROJECT ID -----
@@ -248,11 +248,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     return drush_set_error(dt("ERROR: Could not find project \"@project_name\" in the database.",
       array('@project_name' => $options['project_name'])));
   } else {
-    drush_print(dt("  Found project \"@project_name\" in the database.", array('@project_name' => $options['project_name'])));
+    if (!$options['silent']) { drush_print(dt("  Found project \"@project_name\" in the database.", array('@project_name' => $options['project_name']))); }
     $options['project_id'] = $project_id;
   }
 
-  drush_print('  Checking for samples [' . $db_options[ $options['insert_samples'] ] . '] and for germplasm [' . $db_options[ $options['insert_germplasm'] ] . '] in the database...');
+  if (!$options['silent']) { drush_print('  Checking for samples [' . $db_options[ $options['insert_samples'] ] . '] and for germplasm [' . $db_options[ $options['insert_germplasm'] ] . '] in the database...'); }
 
   // ---------------------------
   //       SAMPLES MAPPING
@@ -332,7 +332,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'name' => $sample_name,
     ));
     if (!$stock_id) { return drush_set_error(dt('ERROR: Could not find a stock ID for @stock', array('@stock' => $sample_accession))); }
-//    drush_print("Found stock ID: $stock_id for sample: $sample_name");
+//    if (!$options['silent']) { drush_print("Found stock ID: $stock_id for sample: $sample_name"); }
 
     // ----- GERMPLASM -----
     $germplasm_id = genotypes_loader_helper_add_record_with_mode('Germplasm', 'stock', $options['insert_germplasm'], array(
@@ -348,7 +348,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     ));
 
     if (!$germplasm_id) { return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession))); }
-//    drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
+//    if (!$options['silent']) { drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
 
     // ----- GERMPLASM TO SAMPLE LINK -----
     $status = genotypes_loader_helper_add_record_with_mode('Germplasm to Sample Link', 'stock_relationship', $both, array(
@@ -360,14 +360,14 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       '@germplasm' => $germplasm_name,
       '@sample' => $sample_name)));
     }
-//    drush_print("Linked stock ID: $stock_id to stock ID: $germplasm_id");
+//    if (!$options['silent']) { drush_print("Linked stock ID: $stock_id to stock ID: $germplasm_id"); }
 
     // Save the sample name (according to Chado) and its stock id in the options array
     $options['sample_list'][$source_name]['sample_name'] = $sample_name;
     $options['sample_list'][$source_name]['sample_stock_id'] = $stock_id;
   }
 
-  drush_print("  Successfully mapped stocks and germplasm.");
+  if ($options['silent']) { drush_print("  Successfully mapped stocks and germplasm."); }
 
   // ----- DETECT INPUT FILE TYPE -----
   // @TODO: Deprecate this and ask the user :'-(
@@ -404,15 +404,15 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // ----- CALL THE APPROPRIATE LOADER -----
   switch ($file_format) {
     case "vcf":
-      drush_print("  Detected VCF file format. \nProceeding to load genotypes...");
+      if (!$options['silent']) { drush_print("  Detected VCF file format. \nProceeding to load genotypes..."); }
       genotypes_loader_load_VCF($input_file, $options, $terms);
       break;
     case "matrix":
-      drush_print("  Detected genotype matrix file format. \nProceeding to load genotypes...");
+      if (!$options['silent']) { drush_print("  Detected genotype matrix file format. \nProceeding to load genotypes..."); }
       genotypes_loader_load_matrix($input_file, $options, $terms);
       break;
     case "legacy":
-      drush_print("  Detected flat file format. \nProceeding to load genotypes...");
+      if (!$options['silent']) { drush_print("  Detected flat file format. \nProceeding to load genotypes..."); }
       genotypes_loader_load_legacy($input_file, $options, $terms);
       break;
     default:
