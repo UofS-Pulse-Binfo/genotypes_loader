@@ -42,7 +42,7 @@ console.log('initial check.');
     };
 
     // Used to look up the term ([url prefix]/[cv_id]/[term name])
-    var autocomplete_url_prefix = Drupal.settings.basePath + 'ajax/genotypes_loader/cvterm/';
+    var autocomplete_url_prefix = '/ajax/genotypes_loader/cvterm/';
 
     // For each of our cvterm form elements...
     elementNames.forEach(notifyfn);
