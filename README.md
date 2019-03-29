@@ -121,6 +121,6 @@ This module currently expects the following controlled vocabulary terms already 
 | Marker type | *Indicated by user* | sequence              |
 | Property type for free-text marker description | marker_type         | feature_property      |
 | Variant type | *Indicated by user* | sequence              |
-| Property type for free-text variant description | variant_type         | feature_property      |
+| Property type for free-text variant description | variant_type        | feature_property      |
 
 You can configure these terms through a settings form under module configuration. In the future, you will also be able to configure the controlled vocabularies for these terms as well.
