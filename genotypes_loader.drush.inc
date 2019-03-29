@@ -39,9 +39,19 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
   // ------------------------
   // Check that both files exist
   $input_file = trim($input_file);
-  if (!$input_file) { return drush_set_error(dt('ERROR: No input file specified. See: \'drush help load-genotypes\'')); }
+  if (!$input_file) {
+    if ($options['no_drush']) { print 'Ln43'; return FALSE; }
+    else {
+      return drush_set_error(dt('ERROR: No input file specified. See: \'drush help load-genotypes\''));
+    }
+  }
   $sample_file = trim($sample_file);
-  if (!$sample_file) { return drush_set_error(dt('ERROR: No sample mapping specified. See: \'drush help load-genotypes\'')); }
+  if (!$sample_file) {
+    if ($options['no_drush']) { print 'Ln50'; return FALSE; }
+    else {
+      return drush_set_error(dt('ERROR: No sample mapping specified. See: \'drush help load-genotypes\''));
+    }
+  }
 
   // Ensure we can open the files. If not, first check the current directory and
   // attach the full path and try again.
@@ -52,7 +62,10 @@ function drush_genotypes_loader_load_genotypes($input_file = NULL, $sample_file 
     // Test each file again, return error if we still can't find it.
     foreach (array($input_file, $sample_file) as $file) {
       if (!file_exists($file)) {
-        return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.", array('@file' => $file)));
+        if ($options['no_drush']) { print 'Ln65'; return FALSE; }
+        else {
+          return drush_set_error(dt("ERROR: Could not locate '@file'\nPlease ensure you spelled your file correctly or that the web server has permissions to read the file.", array('@file' => $file)));
+        }
       }
     }
   }
@@ -216,8 +229,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $cv_name = $values['cv_name'];
     $terms[$key]['cvterm_id'] = chado_query($type_query, array(':name' => $term, ':cv_name' => $cv_name))->fetchField();
     if (!$terms[$key]['cvterm_id']) {
-      return drush_set_error(dt("ERROR: Could not find type '@term' with vocabulary '@cv_name'.",
-        array('@term' => $term, '@cv_name' => $cv_name,)));
+      if ($options['no_drush']) { print 'Ln232'; return FALSE; }
+      else {
+        return drush_set_error(dt("ERROR: Could not find type '@term' with vocabulary '@cv_name'.",
+          array('@term' => $term, '@cv_name' => $cv_name,)));
+      }
     }
   }
 
@@ -231,8 +247,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
      array(':id' => $options['organism_id'])
   )->fetchField();
   if (!$organism_name) {
-    return drush_set_error(dt("ERROR: Could not find an organism with ID of \"@organism_id\" in the database.",
-      array('@organism_id' => $options['organism_id'])));
+    if ($options['no_drush']) { print 'Ln250'; return FALSE; }
+    else {
+      return drush_set_error(dt("ERROR: Could not find an organism with ID of \"@organism_id\" in the database.",
+        array('@organism_id' => $options['organism_id'])));
+    }
   } else {
     if (!$options['silent']) { drush_print(dt("  Found organism \"@organism\" in the database.", array('@organism' => $organism_name))); }
   }
@@ -245,8 +264,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
      array(':name' => $options['project_name'])
   )->fetchField();
   if (!$project_id) {
-    return drush_set_error(dt("ERROR: Could not find project \"@project_name\" in the database.",
-      array('@project_name' => $options['project_name'])));
+    if ($options['no_drush']) { print 'Ln267'; return FALSE; }
+    else {
+      return drush_set_error(dt("ERROR: Could not find project \"@project_name\" in the database.",
+        array('@project_name' => $options['project_name'])));
+    }
   } else {
     if (!$options['silent']) { drush_print(dt("  Found project \"@project_name\" in the database.", array('@project_name' => $options['project_name']))); }
     $options['project_id'] = $project_id;
@@ -264,8 +286,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   $num_columns = count($header);
   // Originally I didn't negate the following if statement, creating some frustration @OnAFriday...
   if (!(($num_columns >= 5) && ($num_columns <= 7))) {
-    return drush_set_error(dt("ERROR: Unexpected number of columns of $num_columns in '@file'\nSee: 'drush help load-genotypes''",
+    if ($options['no_drush']) { print 'Ln289'; return FALSE; }
+    else {
+      return drush_set_error(dt("ERROR: Unexpected number of columns of $num_columns in '@file'\nSee: 'drush help load-genotypes''",
         array('@file' => $sample_file)));
+    }
   }
 
   while(!feof($SAMPLE_MAP)) {
@@ -295,7 +320,10 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         $terms[$germplasm_type]['cvterm_id'] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
       if (!$terms[$germplasm_type]['cvterm_id']) {
-        return drush_set_error(dt("ERROR: Could not find germplasm type '@term' with the vocabulary '@cv_name'.", array('@term' => $germplasm_type, '@cv_name' => $cv_name,)));
+        if ($options['no_drush']) { print 'Ln232'; return FALSE; }
+        else {
+          return drush_set_error(dt("ERROR: Could not find germplasm type '@term' with the vocabulary '@cv_name'.", array('@term' => $germplasm_type, '@cv_name' => $cv_name,)));
+        }
       }
     }
 
@@ -307,8 +335,11 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       $organism_query = "SELECT organism_id FROM {organism} WHERE genus||' '||species=:user_input";
       $organism_id = chado_query($organism_query, array(':user_input' => $organism))->fetchField();
       if (!$organism_id) {
-        return drush_set_error(dt("ERROR: Could not find an organism \"@organism_name\" in the database.",
-          array('@organism_name' => $organism)));
+        if ($options['no_drush']) { print 'Ln338'; return FALSE; }
+        else {
+          return drush_set_error(dt("ERROR: Could not find an organism \"@organism_name\" in the database.",
+            array('@organism_name' => $organism)));
+        }
       }
     }
 
@@ -331,7 +362,12 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     ), array(
       'name' => $sample_name,
     ));
-    if (!$stock_id) { return drush_set_error(dt('ERROR: Could not find a stock ID for @stock', array('@stock' => $sample_accession))); }
+    if (!$stock_id) {
+      if ($options['no_drush']) { print 'Ln366'; return FALSE; }
+      else {
+        return drush_set_error(dt('ERROR: Could not find a stock ID for @stock', array('@stock' => $sample_accession)));
+      }
+    }
 //    if (!$options['silent']) { drush_print("Found stock ID: $stock_id for sample: $sample_name"); }
 
     // ----- GERMPLASM -----
@@ -347,7 +383,12 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'name' => $germplasm_name,
     ));
 
-    if (!$germplasm_id) { return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession))); }
+    if (!$germplasm_id) {
+      if ($options['no_drush']) { print 'Ln387'; return FALSE; }
+      else {
+        return drush_set_error(dt('ERROR: Could not find a germplasm ID for @germplasm', array('@germplasm' => $germplasm_accession)));
+      }
+    }
 //    if (!$options['silent']) { drush_print("Found stock ID: $germplasm_id for germplasm: $germplasm_name");
 
     // ----- GERMPLASM TO SAMPLE LINK -----
@@ -356,9 +397,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       'type_id' => $terms['sample_germplasm_relationship']['cvterm_id'],
       'object_id' => $germplasm_id,
     ));
-    if (!$status) { return drush_set_error(dt('ERROR: Could not link germplasm @germplasm to stock @sample', array(
-      '@germplasm' => $germplasm_name,
-      '@sample' => $sample_name)));
+    if (!$status) {
+      if ($options['no_drush']) { print 'Ln401'; return FALSE; }
+      else {
+        return drush_set_error(dt('ERROR: Could not link germplasm @germplasm to stock @sample', array(
+          '@germplasm' => $germplasm_name,
+          '@sample' => $sample_name)));
+      }
     }
 //    if (!$options['silent']) { drush_print("Linked stock ID: $stock_id to stock ID: $germplasm_id"); }
 
@@ -416,6 +461,9 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       genotypes_loader_load_legacy($input_file, $options, $terms);
       break;
     default:
-      return drush_set_error(dt("ERROR: Could not determine the format for '@file'. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.", array('@file' => $input_file)));
+      if ($options['no_drush']) { print 'Ln43'; return FALSE; }
+      else {
+        return drush_set_error(dt("ERROR: Could not determine the format for '@file'. Please ensure your file is tab-delimited in the form of a VCF, a genotype matrix or genotype flat file.", array('@file' => $input_file)));
+      }
   }
 }
