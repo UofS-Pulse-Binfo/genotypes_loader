@@ -134,6 +134,7 @@ prevalent organism here, and anything in the file will take precedence over it.:
   $storage_method = 'genotype_call';
   $feature_type_of_marker = 'genetic_marker';
   $feature_type_of_variant = 'sequence_variant';
+  $genotype_type = 'SNP';
   $insert_samples = variable_get('genotypes_samples_mode', 2);
   $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
   $insert_variants = variable_get('genotypes_variants_mode', 2);
@@ -145,6 +146,7 @@ prevalent organism here, and anything in the file will take precedence over it.:
     'variant_type' => $variant_type,
     'feature_type_of_marker' => $feature_type_of_marker,
     'marker_type' => $marker_type,
+    'genotype_type' => $genotype_type,
     'project_name' => $project_name,
     'storage_method' => $storage_method,
     'insert_samples' => $insert_samples,
@@ -211,6 +213,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   // the CV which they are pulling from since additionalType is the only useful term in its CV.
   $terms['free_text_marker_type'] = array('name' => variable_get('genotypes_marker_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
   $terms['free_text_variant_type'] = array('name' => variable_get('genotypes_variant_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
+  $terms['genotype_type'] = array('name' => $options['genotype_type'], 'cv_name' => 'sequence');
 
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   foreach ($terms as $key => $values) {
