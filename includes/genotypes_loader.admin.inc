@@ -145,7 +145,7 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => 'Feature Property: marker_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of marker.',
-    '#default_value' => variable_get('genotypes_featureprop_type_marker', 'marker_type'),
+    '#default_value' => variable_get('genotypes_featureprop_type_marker', 'additionalType'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
     '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
@@ -155,7 +155,7 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => 'Feature Property: variant_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of variant.',
-    '#default_value' => variable_get('genotypes_featureprop_type_variant', 'variant_type'),
+    '#default_value' => variable_get('genotypes_featureprop_type_variant', 'additionalType'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
     '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
