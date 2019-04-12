@@ -140,24 +140,24 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#attributes' => array('data-cv' => 'feature_relationship', 'data-cv_id' => $feature_rel_cv->cv_id ),
   );
 
-  $feature_prop_cv = tripal_get_cv(array('name' => 'feature_property'));
+  $feature_prop_cv = tripal_get_cv(array('name' => 'schema'));
   $form['cvterms']['featureprop_type_marker'] = array(
     '#type' => 'textfield',
     '#title' => 'Feature Property: marker_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of marker.',
     '#default_value' => variable_get('genotypes_featureprop_type_marker', 'additionalType'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
-    '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
+    '#attributes' => array('data-cv' => 'schema', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
 
-  $feature_prop_cv = tripal_get_cv(array('name' => 'feature_property'));
+  $feature_prop_cv = tripal_get_cv(array('name' => 'schema'));
   $form['cvterms']['featureprop_type_variant'] = array(
     '#type' => 'textfield',
     '#title' => 'Feature Property: variant_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of variant.',
     '#default_value' => variable_get('genotypes_featureprop_type_variant', 'additionalType'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
-    '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
+    '#attributes' => array('data-cv' => 'schema', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
 
   $form['cvterms']['add_cvterms'] = array(
