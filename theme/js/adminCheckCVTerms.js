@@ -41,8 +41,8 @@ console.log('initial check.');
       });
     };
 
-    // Used to look up the term ([url prefix]/[cv_id]/[term name])
-    var autocomplete_url_prefix = '/ajax/genotypes_loader/cvterm/';
+    // Used to look up the term (see includes/genotypes_loader.admin.inc)
+    var autocomplete_url_prefix = Drupal.settings.genotypes_loader.autocompletePath;
 
     // For each of our cvterm form elements...
     elementNames.forEach(notifyfn);

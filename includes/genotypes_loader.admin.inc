@@ -8,6 +8,13 @@
  * Settings Form.
  */
 function genotypes_loader_admin_settings_form($form, &$form_state) {
+  
+  global $base_url;
+  	
+  drupal_add_js(
+    array('genotypes_loader' => array('autocompletePath' => $base_url . '/ajax/genotypes_loader/cvterm/')),
+    'setting'
+  );
 
   $form['#attached']['js'][] = drupal_get_path('module', 'genotypes_loader') . '/theme/js/adminCheckCVTerms.js';
 
