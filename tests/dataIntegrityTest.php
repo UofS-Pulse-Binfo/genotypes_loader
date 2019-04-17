@@ -55,6 +55,13 @@ class dataIntegrityTest extends TripalTestCase {
     // Create fake project.
     $project = factory('chado.project')->create();
 
+    // Add chromosomes needed for the VCF file.
+    factory('chado.feature')->create([
+      'name'=>'1A', 
+      'uniquename'=>'1A',
+      'organism_id' => $organism->organism_id
+    ]);
+
     $module_path = drupal_get_path('module','genotypes_loader');
     $samples_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.list';
     $vcf_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.vcf';
