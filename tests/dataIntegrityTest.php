@@ -24,12 +24,11 @@ class dataIntegrityTest extends TripalTestCase {
 
     // Ensure germplasm type exists.
     $cv = chado_get_cv(['name' => 'stock_type']);
-    print_r($cv);
-    //$germplasm_type = factory('chado.cvterm')->create(['name' => 'Individual', 'cv_id' => $cv->cv_id]);
-    //print_r($germplasm_type);
-
-    $germplasm_type = tripal_insert_cvterm(array( 'id' => 'stock_type' . ':' . 'Individual', 'name' => 'Individual', 'cv_name' => 'stock_type', ));
-    print_r($germplasm_type);
+    $germplasm_type = tripal_insert_cvterm([
+      'id' => 'tripal:Individual',
+      'name' => 'Individual',
+      'cv_name' => 'stock_type'
+    ]);
 
     $project = factory('chado.project');
 
