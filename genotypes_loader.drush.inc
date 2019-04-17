@@ -252,7 +252,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
      array(':id' => $options['organism_id'])
   )->fetchField();
   if (!$organism_name) {
-    if ($options['no_drush']) { print 'Ln250'; return FALSE; }
+    if ($options['no_drush']) { print 'Ln250:'.$options['organism_id']; return FALSE; }
     else {
       return drush_set_error(dt("ERROR: Could not find an organism with ID of \"@organism_id\" in the database.",
         array('@organism_id' => $options['organism_id'])));
@@ -417,7 +417,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $options['sample_list'][$source_name]['sample_stock_id'] = $stock_id;
   }
 
-  if ($options['silent']) { drush_print("  Successfully mapped stocks and germplasm."); }
+  if (!$options['silent']) { drush_print("  Successfully mapped stocks and germplasm."); }
 
   // ----- DETECT INPUT FILE TYPE -----
   // @TODO: Deprecate this and ask the user :'-(

@@ -16,13 +16,18 @@ class dataIntegrityTest extends TripalTestCase {
     $faker = Factory::create();
     module_load_include('inc','genotypes_loader','genotypes_loader.drush');
 
-    // Create fake organism.
-    $organism = factory('chado.organism');
+    // Create fake organism for markers/variants.
+    $organism = factory('chado.organism')->create();
+    // Create cats for germplasm: must match samples file (Felis catus and Felis silvestris).
+    factory('chado.organism')->create(['genus' => 'Felis', 'species' => 'catus']);
+    factory('chado.organism')->create(['genus' => 'Felis', 'species' => 'silvestris']);
+
 
     // Create fake marker/variant types.
     $cv = chado_get_cv(['name' => 'sequence']);
     $marker_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
     $variant_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
+    $genotype_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
 
     // Ensure germplasm type exists (from file).
     $cv = chado_get_cv(['name' => 'stock_type']);
@@ -48,11 +53,11 @@ class dataIntegrityTest extends TripalTestCase {
     }
 
     // Create fake project.
-    $project = factory('chado.project');
+    $project = factory('chado.project')->create();
 
     $module_path = drupal_get_path('module','genotypes_loader');
-    $samples_file = $module_path . '/sample_files/cats.list';
-    $vcf_file = $module_path . '/sample_files/cats.vcf';
+    $samples_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.list';
+    $vcf_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.vcf';
     $options = array(
       'organism_id' => $organism->organism_id,
       'feature_type_of_variant' => $variant_type->name,
@@ -60,6 +65,7 @@ class dataIntegrityTest extends TripalTestCase {
       'feature_type_of_marker' => $marker_type->name,
       'marker_type' => $faker->words(3,TRUE),
       'project_name' => $project->name,
+      'genotype_type' => $genotype_type->name,
       'storage_method' => 'genotype_call',
       // 1 = Insert Only; 0 = Select Only, 2 = Insert or Select.
       'insert_samples' => 2,
@@ -69,7 +75,7 @@ class dataIntegrityTest extends TripalTestCase {
       'silent' => TRUE,
       'no_drush' => TRUE,
     );
-    $success = genotypes_loader_load_genotypes($input_file, $sample_file, $options);
+    $success = genotypes_loader_load_genotypes($vcf_file, $samples_file, $options);
 
     $this->assertTrue($success,
       "Loading genotypes failed.");
