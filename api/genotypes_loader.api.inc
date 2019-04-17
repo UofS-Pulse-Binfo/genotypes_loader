@@ -338,7 +338,7 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
     'name' => $v['allele'],
     'uniquename' => $v['allele'],
     'description' => $v['allele'],
-    'type_id' => $v['variant_type_id'],
+    'type_id' => $v['genotype_type_id'],
   ));
   if (!$genotype_id) return drush_set_error(dt('ERROR: Could not insert the genotype into the genotype table. Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
 

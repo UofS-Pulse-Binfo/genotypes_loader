@@ -8,6 +8,13 @@
  * Settings Form.
  */
 function genotypes_loader_admin_settings_form($form, &$form_state) {
+  
+  global $base_url;
+  	
+  drupal_add_js(
+    array('genotypes_loader' => array('autocompletePath' => $base_url . '/ajax/genotypes_loader/cvterm/')),
+    'setting'
+  );
 
   $form['#attached']['js'][] = drupal_get_path('module', 'genotypes_loader') . '/theme/js/adminCheckCVTerms.js';
 
@@ -104,7 +111,7 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#title' => 'Controlled Vocabulary Terms',
     '#description' => 'The genotypes loader uses a number of controlled vocabulary terms (cvterms) when loading genotypes into Chado. This form will allow you to not only check that the required cvterms are present but also to change them to suit your needs.',
   );
-  
+
   $form['cvterms']['note'] = array(
     '#type' => 'markup',
     '#markup' => '<div class="messages warning">This module currently only supports terms from the specified Controlled Vocabularies. See <a href="https://github.com/UofS-Pulse-Binfo/genotypes_loader/issues/15">Issue#15 on GitHub</a> for more information.</div>',
@@ -140,14 +147,24 @@ function genotypes_loader_admin_settings_form($form, &$form_state) {
     '#attributes' => array('data-cv' => 'feature_relationship', 'data-cv_id' => $feature_rel_cv->cv_id ),
   );
 
-  $feature_prop_cv = tripal_get_cv(array('name' => 'feature_property'));
-  $form['cvterms']['featureprop_type'] = array(
+  $feature_prop_cv = tripal_get_cv(array('name' => 'schema'));
+  $form['cvterms']['featureprop_type_marker'] = array(
     '#type' => 'textfield',
     '#title' => 'Feature Property: marker_type',
     '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of marker.',
-    '#default_value' => variable_get('genotypes_featureprop_type', 'marker_type'),
+    '#default_value' => variable_get('genotypes_featureprop_type_marker', 'additionalType'),
     '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
-    '#attributes' => array('data-cv' => 'feature_property', 'data-cv_id' => $feature_prop_cv->cv_id ),
+    '#attributes' => array('data-cv' => 'schema', 'data-cv_id' => $feature_prop_cv->cv_id ),
+  );
+
+  $feature_prop_cv = tripal_get_cv(array('name' => 'schema'));
+  $form['cvterms']['featureprop_type_variant'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Feature Property: variant_type',
+    '#description' => 'This cvterm is used as the featureprop.type_id for the property indicating the type of variant.',
+    '#default_value' => variable_get('genotypes_featureprop_type_variant', 'additionalType'),
+    '#autocomplete_path' => 'ajax/genotypes_loader/cvterm/' . $feature_prop_cv->cv_id,
+    '#attributes' => array('data-cv' => 'schema', 'data-cv_id' => $feature_prop_cv->cv_id ),
   );
 
   $form['cvterms']['add_cvterms'] = array(
@@ -191,12 +208,13 @@ function genotypes_loader_admin_settings_form_submit($form, &$form_state) {
     variable_set('genotypes_sample_type', $form_state['values']['sample_type']);
     variable_set('genotypes_stock_ref', $form_state['values']['stock_rel']);
     variable_set('genotypes_feature_rel', $form_state['values']['feature_rel']);
-    variable_set('genotypes_featureprop_type', $form_state['values']['featureprop_type']);
+    variable_set('genotypes_featureprop_type_marker', $form_state['values']['featureprop_type_marker']);
+    variable_set('genotypes_featureprop_type_variant', $form_state['values']['featureprop_type_variant']);
 
     // Next, if requested, save the new cvterms.
     if ($form_state['values']['add_cvterms']) {
 
-      foreach(array('sample_type','stock_rel','feature_rel','featureprop_type') as $element) {
+      foreach(array('sample_type','stock_rel','feature_rel','featureprop_type_marker','featureprop_type_variant') as $element) {
         if (!empty($form_state['values'][$element])) {
 
           $cv_name = $form['cvterms'][$element]['#attributes']['data-cv'];

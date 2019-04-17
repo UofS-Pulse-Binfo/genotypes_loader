@@ -28,12 +28,12 @@
  *        one of 0: Select Only, 1: Insert Only, 2: Insert & Select.
  *     - nd_geolocation: nd_geolocation.description; only if the ND Experiment storage
  *        method is chosen.
- * @param $types
- *  An associative array of types and their type IDs in Chado which are required by the loader,
- *  such as types of features and stocks.
+ * @param $terms
+ *  An associative array of cvterms and their IDs in Chado which are required by the loader,
+ *  such as types of features and stocks, and relationships.
  */
 
-function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
+function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
 
   // Open our VCF file and iterate through meta lines until we reach our header
   $VCFfile = fopen($input_file, 'r') or die ("ERROR: Unable to open $input_file!");
@@ -123,23 +123,31 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       'name' => $variant_name,
       'uniquename' => $variant_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['variant_type'] ]
+      'type_id' => $terms['variant_type']['cvterm_id'],
     ));
     if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
+
+    // ----- Variant Type -----
+    $variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
+      'feature_id' => $variant_id,
+      'type_id' => $terms['free_text_variant_type']['cvterm_id'],
+      'value' => $options['variant_type'],
+    ));
+    if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
 
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
       'uniquename' => $marker_name,
       'organism_id' => $options['organism_id'],
-      'type_id' => $types[ $options['feature_type_of_marker'] ]
+      'type_id' => $terms['marker_type']['cvterm_id'],
     ));
     if (!$marker_id) { return drush_set_error(dt('ERROR: Could not find a marker ID for @marker', array('@marker' => $marker_name))); }
 
     // ----- Marker Type -----
     $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
       'feature_id' => $marker_id,
-      'type_id' => $types['marker_type'],
+      'type_id' => $terms['free_text_marker_type']['cvterm_id'],
       'value' => $options['marker_type'],
     ));
     if (!$marker_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name))); }
@@ -147,7 +155,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
     // ----- Link Variant to Marker -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
       'subject_id' => $marker_id,
-      'type_id' => $types['is_marker_of'],
+      'type_id' => $terms['marker_variant_relationship']['cvterm_id'],
       'object_id' => $variant_id,
     ));
     if (!$status) { return drush_set_error(dt('ERROR: Could not link variant @variant to marker @marker', array(
@@ -155,7 +163,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       '@marker' => $marker_name)));
     }
 
-    // ----- Locate the variant on chromosome -----
+    // ----- Locate Variant on Chromosome -----
     $status = genotypes_loader_helper_add_record_with_mode('Variant location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $variant_id,
       'srcfeature_id' => $chromosome_id,
@@ -167,7 +175,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
       '@backbone' => $backbone_name)));
     }
 
-    // Locate the marker on chromosome.
+    // ----- Locate Marker on Chromosome -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker location on Chromsome', 'featureloc', $both, array(
       'feature_id' => $marker_id,
       'srcfeature_id' => $chromosome_id,
@@ -276,8 +284,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $types) {
         'feature_type_of_marker' => $options['feature_type_of_marker'],
         'variant_id' => $variant_id,
         'variant_name' => $variant_name,
-        'variant_type_id' => $types[ $options['variant_type'] ],
-        'variant_type' => $options['variant_type'],
+        'variant_type_id' => $terms['variant_type']['cvterm_id'],
+	'variant_type' => $options['variant_type'],
+	'genotype_type_id' => $terms['genotype_type']['cvterm_id'],
         'stock_id' => $options['sample_list'][$source_name]['sample_stock_id'],
         'stock_name' => $options['sample_list'][$source_name]['sample_name'],
         'allele' => $allele,
