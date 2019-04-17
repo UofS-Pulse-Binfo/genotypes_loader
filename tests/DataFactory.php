@@ -190,7 +190,7 @@ Factory::define('chado.project', function (Faker\Generator $faker) {
 /** @see StatonLab\TripalTestSuite\Database\Factory::define() */
 Factory::define('chado.pub', function (Faker\Generator $faker) {
     return [
-        'uniquename' => $faker->word,
+        'uniquename' => $faker->word . uniqid(),
         'type_id' => factory('chado.cvterm')->create()->cvterm_id,
     ];
 });
