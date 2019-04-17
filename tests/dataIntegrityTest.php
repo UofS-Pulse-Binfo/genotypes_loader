@@ -16,13 +16,15 @@ class dataIntegrityTest extends TripalTestCase {
     $faker = Factory::create();
     module_load_include('inc','genotypes_loader','genotypes_loader.drush');
 
+    // Create fake organism.
     $organism = factory('chado.organism');
 
+    // Create fake marker/variant types.
     $cv = chado_get_cv(['name' => 'sequence']);
     $marker_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
     $variant_type = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
 
-    // Ensure germplasm type exists.
+    // Ensure germplasm type exists (from file).
     $cv = chado_get_cv(['name' => 'stock_type']);
     $germplasm_type = tripal_insert_cvterm([
       'id' => 'tripal:Individual',
@@ -30,6 +32,22 @@ class dataIntegrityTest extends TripalTestCase {
       'cv_name' => 'stock_type'
     ]);
 
+    // Ensure cvterms at admin/tripal/extension/genotypes_loader
+    // have been inserted and configured.
+    $settings = [
+      'genotypes_sample_type' => 'sequence',
+      'genotypes_stock_ref' => 'stock_relationship',
+      'genotypes_feature_rel' => 'feature_relationship',
+      'genotypes_featureprop_type_marker' => 'schema',
+      'genotypes_featureprop_type_variant' => 'schema',
+    ];
+    foreach ($settings as $var_name => $cv_name) {
+      $cv = chado_get_cv(['name' => $cv_name]);
+      $term = factory('chado.cvterm')->create(['cv_id' => $cv->cv_id]);
+      variable_set($var_name, $term->name);
+    }
+
+    // Create fake project.
     $project = factory('chado.project');
 
     $module_path = drupal_get_path('module','genotypes_loader');
@@ -37,8 +55,8 @@ class dataIntegrityTest extends TripalTestCase {
     $vcf_file = $module_path . '/sample_files/cats.vcf';
     $options = array(
       'organism_id' => $organism->organism_id,
-      'feature_type_of_variant' => $variant_type->name, // @when-fixed
-      'variant_type' => $variant_type->name, // @when-fixed $faker->words(2, TRUE),
+      'feature_type_of_variant' => $variant_type->name,
+      'variant_type' => $faker->words(2, TRUE),
       'feature_type_of_marker' => $marker_type->name,
       'marker_type' => $faker->words(3,TRUE),
       'project_name' => $project->name,

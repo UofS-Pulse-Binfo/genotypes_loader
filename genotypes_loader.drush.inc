@@ -229,7 +229,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $cv_name = $values['cv_name'];
     $terms[$key]['cvterm_id'] = chado_query($type_query, array(':name' => $term, ':cv_name' => $cv_name))->fetchField();
     if (!$terms[$key]['cvterm_id']) {
-      if ($options['no_drush']) { print 'Ln232'; return FALSE; }
+      if ($options['no_drush']) { print 'Ln232:'.$term; return FALSE; }
       else {
         return drush_set_error(dt("ERROR: Could not find type '@term' with vocabulary '@cv_name'.",
           array('@term' => $term, '@cv_name' => $cv_name,)));
