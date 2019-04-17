@@ -19,7 +19,7 @@ function genotypes_loader_drush_command() {
     ),
     'options' => array(
       'organism' => 'The organism of the samples in your samples file. If your samples consist of multiple organisms, please fill in the organism in the 7th column of the samples file. The organism name should be formatted as "Genus species". For example, for cultivated lentil: Lens culinaris',
-      'variant-type' => 'The Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).',
+      'variant-type' => 'A free-text title that describes the type of variants in the file (e.g. SNP, MNP, Indel).',
       'marker-type' => 'A free-text title that describes the marker technology used to generate the genotypes in the file (e.g. "Exome Capture", "GBS", "KASPar", etc.).',
       'project-name' => 'All genotypes will be grouped via a project to allow users to specify a particular dataset.',
       'ndgeolocation' => 'A meaningful location associated with this natural diversity experiment. For example, this could be the location the assay was completed in, the location the germplasm collection was from, or the location the markers were developed at. This should be the description field of your ndgeolocation.',
@@ -117,7 +117,7 @@ prevalent organism here, and anything in the file will take precedence over it.:
     //$values = array('name' => 'sequence');
     //$cv = chado_select_record('cv', array('cv_id'), $values);
     //$cv_id = $cv[0]->cv_id;
-    $variant_type = drush_prompt(dt('Please enter the Sequence Ontology (SO) term name that describes the type of variants in the file (eg. SNP, MNP, indel).'));
+    $variant_type = drush_prompt(dt('Please enter a free-text title that describes the type of variants in the file (eg. SNP, MNP, indel).'));
   }
 
   // ----- Marker type -----
@@ -146,6 +146,8 @@ prevalent organism here, and anything in the file will take precedence over it.:
   //$storage_method = variable_get('nd_genotype_storage_method', 'nd_exp');
   $storage_method = 'genotype_call';
   $feature_type_of_marker = 'genetic_marker';
+  $feature_type_of_variant = 'sequence_variant';
+  $genotype_type = 'SNP';
   $insert_samples = variable_get('genotypes_samples_mode', 2);
   $insert_germplasm = variable_get('genotypes_germplasm_mode', 2);
   $insert_variants = variable_get('genotypes_variants_mode', 2);
@@ -153,9 +155,11 @@ prevalent organism here, and anything in the file will take precedence over it.:
 
   $options = array(
     'organism_id' => $organism_id,
+    'feature_type_of_variant' => $feature_type_of_variant,
     'variant_type' => $variant_type,
     'feature_type_of_marker' => $feature_type_of_marker,
     'marker_type' => $marker_type,
+    'genotype_type' => $genotype_type,
     'project_name' => $project_name,
     'storage_method' => $storage_method,
     'insert_samples' => $insert_samples,
@@ -216,12 +220,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   $terms['sample_type'] = array('name' => variable_get('genotypes_sample_type', 'genomic_DNA'), 'cv_name' => 'sequence');
   $terms['sample_germplasm_relationship'] = array('name' => variable_get('genotypes_stock_ref', 'is_extracted_from'), 'cv_name' => 'stock_relationship');
   $terms['marker_variant_relationship'] = array('name' => variable_get('genotypes_feature_rel', 'is_marker_of'), 'cv_name' => 'feature_relationship');
-  $terms['variant_type'] = array('name' => $options['variant_type'], 'cv_name' => 'sequence');
+  $terms['variant_type'] = array('name' => $options['feature_type_of_variant'], 'cv_name' => 'sequence');
   $terms['marker_type'] = array('name' => $options['feature_type_of_marker'], 'cv_name' => 'sequence');
   // For our purposes, additionalType is the cv term used for both markers and variants. This desperately calls for the ability for users to change
   // the CV which they are pulling from since additionalType is the only useful term in its CV.
   $terms['free_text_marker_type'] = array('name' => variable_get('genotypes_marker_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
   $terms['free_text_variant_type'] = array('name' => variable_get('genotypes_variant_featureprop_type', 'additionalType'), 'cv_name' => 'schema');
+  $terms['genotype_type'] = array('name' => $options['genotype_type'], 'cv_name' => 'sequence');
 
   $type_query = 'SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)';
   foreach ($terms as $key => $values) {
