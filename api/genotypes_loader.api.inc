@@ -364,7 +364,15 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
     'description' => $v['allele'],
     'type_id' => $v['genotype_type_id'],
   ));
-  if (!$genotype_id) return drush_set_error(dt('ERROR: Could not insert the genotype into the genotype table. Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+  if (!$genotype_id) {
+    tripal_report_error(
+      'genotypes_loader',
+      TRIPAL_ERROR,
+      'ERROR: Could not insert the genotype into the genotype table. Values: '.print_r($v,TRUE), 
+      array('@record_type' => $record_type, '@mode' => $mode)
+    );
+    return FALSE;
+  }
 
   // Enter the genotype call by adding to a file and copy in as a batch
   $insert_values = array(

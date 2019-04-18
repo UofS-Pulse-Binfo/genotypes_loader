@@ -455,15 +455,15 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
   switch ($file_format) {
     case "vcf":
       if (!$options['silent']) { drush_print("  Detected VCF file format. \nProceeding to load genotypes..."); }
-      genotypes_loader_load_VCF($input_file, $options, $terms);
+      return genotypes_loader_load_VCF($input_file, $options, $terms);
       break;
     case "matrix":
       if (!$options['silent']) { drush_print("  Detected genotype matrix file format. \nProceeding to load genotypes..."); }
-      genotypes_loader_load_matrix($input_file, $options, $terms);
+      return genotypes_loader_load_matrix($input_file, $options, $terms);
       break;
     case "legacy":
       if (!$options['silent']) { drush_print("  Detected flat file format. \nProceeding to load genotypes..."); }
-      genotypes_loader_load_legacy($input_file, $options, $terms);
+      return genotypes_loader_load_legacy($input_file, $options, $terms);
       break;
     default:
       if ($options['no_drush']) { print 'Ln43'; return FALSE; }

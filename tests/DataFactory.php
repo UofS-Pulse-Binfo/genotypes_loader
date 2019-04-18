@@ -45,7 +45,7 @@ Factory::define('chado.cvterm', function (Faker\Generator $faker) {
     return [
         'cv_id' => factory('chado.cv')->create()->cv_id,
         'dbxref_id' => factory('chado.dbxref')->create()->dbxref_id,
-        'name' => $faker->word,
+        'name' => $faker->word.uniqid(),
         'definition' => $faker->text,
         'is_obsolete' => 0,
         'is_relationshiptype' => 0,

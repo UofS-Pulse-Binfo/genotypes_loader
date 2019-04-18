@@ -7,7 +7,7 @@ use Faker\Factory;
 
 class dataIntegrityTest extends TripalTestCase {
   // Uncomment to auto start and rollback db transactions per test method.
-  use DBTransaction;
+  // use DBTransaction;
 
   /**
    * Tests loading of a VCF file.

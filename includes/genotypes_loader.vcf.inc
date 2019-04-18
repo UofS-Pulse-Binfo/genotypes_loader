@@ -329,4 +329,6 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
 
   // Close the file.
   fclose($VCFfile);
+
+  return TRUE;
 }
