@@ -357,13 +357,19 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
   $insert_only = 1;
   $both = 2;
 
-   // Genotype.
-  $genotype_id = genotypes_loader_helper_add_record_with_mode('Genotype', 'genotype', $both, array(
+  // Genotype.
+  // The uniquename is required to be unique. By selecting based on it we ensure we don't
+  // attempt to insert a duplicate genotype.
+  $select = array(
+    'uniquename' => $v['allele'],
+  );
+  $insert = array(
     'name' => $v['allele'],
     'uniquename' => $v['allele'],
     'description' => $v['allele'],
     'type_id' => $v['genotype_type_id'],
-  ));
+  );
+  $genotype_id = genotypes_loader_helper_add_record_with_mode('Genotype', 'genotype', $both, $select, $insert);
   if (!$genotype_id) {
     tripal_report_error(
       'genotypes_loader',
