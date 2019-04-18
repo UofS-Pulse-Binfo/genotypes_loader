@@ -71,14 +71,14 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
   $geno_file_sample_names = array_slice($header, 10);
   foreach ($geno_file_sample_names as $sample) {
     if (!$options['sample_list'][$sample]) {
-      return drush_set_error(dt('ERROR: Sample @sample_name in your genotypes file does not match any samples provided in your samples file.', array('@sample_name' => $sample)));
+      return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Sample @sample_name in your genotypes file does not match any samples provided in your samples file.', array('@sample_name' => $sample));
     }
   }
 
   $total_lines = intval(exec("grep -vc '^#' " . escapeshellarg($input_file)));
-  if ($total_lines) { drush_print("Number of lines to process: $total_lines"); }
+  if ($total_lines) { print("Number of lines to process: $total_lines"); }
   else {
-    return drush_set_error(dt('ERROR: Unable to count the number of lines in file @input_file', array('@input_file' => $input_file)));
+    return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Unable to count the number of lines in file @input_file', array('@input_file' => $input_file));
   }
   // Setting this to 0 since we're counting number of lines with SNPs, not header lines.
   $num_lines = 0;
@@ -111,7 +111,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
         'uniquename' => $backbone_name,
         'organism_id' => $options['organism_id'],
     ));
-    if (!$chromosome_id) { return drush_set_error(dt('ERROR: Could not find a chromosome ID for @backbone', array('@backbone' => $backbone_name))); }
+    if (!$chromosome_id) { return tripal_report_error('genotypes_loader',TRIPAL_ERROR,'ERROR: Could not find a chromosome ID for @backbone', array('@backbone' => $backbone_name)); }
 
     // @TODO: This works for KP but do we want to make it generic?
     $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
@@ -125,7 +125,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'organism_id' => $options['organism_id'],
       'type_id' => $terms['variant_type']['cvterm_id'],
     ));
-    if (!$variant_id) { return drush_set_error(dt('ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name))); }
+    if (!$variant_id) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not find a variant ID for @variant', array('@variant' => $variant_name)); }
 
     // ----- Variant Type -----
     $variant_type_prop_id = genotypes_loader_helper_add_record_with_mode('Variant Type', 'featureprop', $both, array(
@@ -133,7 +133,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'type_id' => $terms['free_text_variant_type']['cvterm_id'],
       'value' => $options['variant_type'],
     ));
-    if (!$variant_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name))); }
+    if (!$variant_type_prop_id) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not find a variant type property ID for @variant_type', array('@variant_type' => $variant_name)); }
 
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
@@ -142,7 +142,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'organism_id' => $options['organism_id'],
       'type_id' => $terms['marker_type']['cvterm_id'],
     ));
-    if (!$marker_id) { return drush_set_error(dt('ERROR: Could not find a marker ID for @marker', array('@marker' => $marker_name))); }
+    if (!$marker_id) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not find a marker ID for @marker', array('@marker' => $marker_name)); }
 
     // ----- Marker Type -----
     $marker_type_prop_id = genotypes_loader_helper_add_record_with_mode('Marker Type', 'featureprop', $both, array(
@@ -150,7 +150,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'type_id' => $terms['free_text_marker_type']['cvterm_id'],
       'value' => $options['marker_type'],
     ));
-    if (!$marker_type_prop_id) { return drush_set_error(dt('ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name))); }
+    if (!$marker_type_prop_id) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name)); }
 
     // ----- Link Variant to Marker -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
@@ -158,9 +158,9 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'type_id' => $terms['marker_variant_relationship']['cvterm_id'],
       'object_id' => $variant_id,
     ));
-    if (!$status) { return drush_set_error(dt('ERROR: Could not link variant @variant to marker @marker', array(
+    if (!$status) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not link variant @variant to marker @marker', array(
       '@variant' => $variant_name,
-      '@marker' => $marker_name)));
+      '@marker' => $marker_name));
     }
 
     // ----- Locate Variant on Chromosome -----
@@ -170,9 +170,10 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'fmin' => $marker['POS'] - 1,
       'fmax' => $marker['POS']
     ));
-    if (!$status) { return drush_set_error(dt('ERROR: Could not locate variant @variant on backbone @backbone', array(
+    if (!$status) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,
+      'ERROR: Could not locate variant @variant on backbone @backbone', array(
       '@variant' => $variant_name,
-      '@backbone' => $backbone_name)));
+      '@backbone' => $backbone_name));
     }
 
     // ----- Locate Marker on Chromosome -----
@@ -182,9 +183,10 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       'fmin' => $marker['POS'] - 1,
       'fmax' => $marker['POS']
     ));
-    if (!$status) { return drush_set_error(dt('ERROR: Could not locate marker @marker on backbone @backbone', array(
+    if (!$status) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,
+      'ERROR: Could not locate marker @marker on backbone @backbone', array(
       '@marker' => $marker_name,
-      '@backbone' => $backbone_name)));
+      '@backbone' => $backbone_name));
     }
 
     // ------------------------
@@ -204,7 +206,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
     for ($i=9;$i<count($header);$i++) {
       $source_name = $header[$i];
       if (!$options['sample_list'][$source_name]) {
-        return drush_set_error(dt('ERROR: Sample @source_name in your genotypes file does not match any samples provided in your samples file.', array('@source_name' => $source_name)));
+        return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Sample @source_name in your genotypes file does not match any samples provided in your samples file.', array('@source_name' => $source_name));
       }
 
       if ($format_keys) {
@@ -317,13 +319,16 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
 
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
-    drush_print("\nCopying in the final batch of calls...");
+    print("\nCopying in the final batch of calls...\n");
     $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
 
   // If we got here without returning an error then we completed successfully!
-  drush_log("Loading Complete.", "success");
+  //drush_log("Loading Complete.", "success");
+  print("Loading Complete.\n");
 
   // Close the file.
   fclose($VCFfile);
+
+  return TRUE;
 }
