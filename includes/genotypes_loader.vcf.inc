@@ -238,7 +238,7 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
       $metadata = array();
       foreach ($format_keys as $subfield) {
         // We are already saving the genotype, so ignore GT. Also, ignore any subfields with missing data.
-        if (($subfield != 'GT') && (!preg_match('/\./', $marker[$source_name][$subfield]))) {
+        if (($subfield != 'GT') && (preg_match('/\b\.*\b/', $marker[$source_name][$subfield]))) {
           $metadata[$subfield] = $marker[$source_name][$subfield];
         }
       }
