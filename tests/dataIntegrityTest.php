@@ -19,6 +19,9 @@ class dataIntegrityTest extends TripalTestCase {
     $faker = Factory::create();
     module_load_include('inc','genotypes_loader','genotypes_loader.drush');
 
+    // Prepare for the test!
+    // --------------------------------
+    //
     // Keep track of what needs to be deleted.
     $delete = [];
 
@@ -74,6 +77,8 @@ class dataIntegrityTest extends TripalTestCase {
     ]);
     $delete['feature'][] = $chr->feature_id;
 
+    // Load the file
+    // --------------------------------
     $module_path = drupal_get_path('module','genotypes_loader');
     $samples_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.list';
     $vcf_file = DRUPAL_ROOT . '/' . $module_path . '/sample_files/cats.vcf';
@@ -96,10 +101,22 @@ class dataIntegrityTest extends TripalTestCase {
     );
     $success = genotypes_loader_load_genotypes($vcf_file, $samples_file, $options);
 
+    // Testing!
+    // --------------------------------
+    // First, did the function run without error?
     $this->assertTrue($success,
       "Loading genotypes failed.");
 
+    // Do we have genotype calls for our fake project?
+    $num_calls = chado_query('SELECT count(*) FROM {genotype_Call} WHERE project_id=:project',
+      array(':project' => $project->project_id))->fetchField();
+    $this->assertNotEmpty($num_calls,
+      'No genotype calls for created when loading the cats.vcf sample file.');
+    $this->assertEquals(22, $num_calls,
+      'There was not the expected number of calls in the genotype_call table for this project: '.$project->project_id);
+
     // Clean up ALL THE THINGS!
+    // --------------------------------
     foreach ($delete as $table => $ids) {
       // Note: we set the search path to ensure deleting works.
       chado_query('SET search_path = frange,chado,pg_catalog; DELETE FROM {'.$table.'} WHERE '.$table.'_id IN (:ids)', [':ids' => $ids]);
