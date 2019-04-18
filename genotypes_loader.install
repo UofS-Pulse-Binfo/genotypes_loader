@@ -32,6 +32,42 @@ function genotypes_loader_enable() {
       array( ':curr' => $pg_version )
     );
   }
+  
+  
+  // Add required terms for loader.
+  // -------------------------------
+  // stock is of type genomic_DNA.
+  // Used for the samples directly associated with the genotypes.
+  // No need to insert since it's from the sequence ontology.
+
+  // [genomic DNA] is_extracted_from [germplasm].
+  // Used to relate the sample with genotypes to the original material it was extracted from.
+  if (!chado_get_cvterm(['cv_id' => ['name' => 'stock_relationship'], 'name' => 'is_extracted_from'])) {
+
+    chado_insert_cvterm([
+      'id' => 'local:is_extracted_from',
+      'name' => 'is_extracted_from',
+      'cv_name' => 'stock_relationship',
+      'definition' => 'Describes the relationship between a DNA extraction and the plant and/or animal it was extracted from..'
+    ]);
+  }
+  // [genetic_marker] is_marker_of [variant].
+  // Used to relate the genetic marker and variant.
+  if (!chado_get_cvterm(['cv_id' => ['name' => 'stock_relationship'], 'name' => 'is_marker_of'])) {
+
+    chado_insert_cvterm([
+      'id' => 'local:is_marker_of',
+      'name' => 'is_marker_of',
+      'cv_name' => 'feature_relationship',
+      'definition' => 'Describes the relationship between a variant (position in the genome showing variation) and a genetic marker assaying that variant.'
+    ]);
+  }
+  // [genetic marker]/[variant] free-text type is schema:additionalType
+  // This is used for a secondary type for markers (e.g. KASP) and variants (e.g. SNP).
+  // No need to insert it since it's used heavily throughout Tripal.
+
+  drupal_set_message('Please configure the terms used for loading genotype data at Admin > Tripal > Extensions > Genotype Loader.', 'warning');
+
 }
 
 /**
