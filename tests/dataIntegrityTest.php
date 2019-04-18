@@ -101,8 +101,13 @@ class dataIntegrityTest extends TripalTestCase {
 
     // Clean up ALL THE THINGS!
     foreach ($delete as $table => $ids) {
-      chado_query('DELETE FROM {'.$table.'} WHERE '.$table.'_id IN (:ids)', [':ids' => $ids]);
+      // Note: we set the search path to ensure deleting works.
+      chado_query('SET search_path = frange,chado,pg_catalog; DELETE FROM {'.$table.'} WHERE '.$table.'_id IN (:ids)', [':ids' => $ids]);
     }
-    
+    chado_query('TRUNCATE {genotype_call}');
+    // Restore the settings.
+    foreach($old_settings as $var_name => $original) {
+      variable_set($var_name, $original);
+    }
   }
 }
