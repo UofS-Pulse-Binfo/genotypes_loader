@@ -201,7 +201,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     $file_handle = fopen($file_name, 'w');
     fclose($file_handle);
 
-    print("Copied in " . $record_count . " records.");
+    print("Copied in " . $record_count . " records.\n");
   }
 
   return TRUE;

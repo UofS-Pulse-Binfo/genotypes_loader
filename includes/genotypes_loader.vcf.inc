@@ -319,13 +319,13 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
 
   // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
   if ($options['storage_method'] == 'genotype_call') {
-    print("\nCopying in the final batch of calls...");
+    print("\nCopying in the final batch of calls...\n");
     $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
   }
 
   // If we got here without returning an error then we completed successfully!
   //drush_log("Loading Complete.", "success");
-  print("Loading Complete.");
+  print("Loading Complete.\n");
 
   // Close the file.
   fclose($VCFfile);
