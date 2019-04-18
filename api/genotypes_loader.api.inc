@@ -13,7 +13,7 @@
 function genotypes_loader_recheck_postgresql_version() {
   $version_string = db_query('SELECT version()')->fetchField();
   $version = '9.2';
-  if (preg_match('/PostgreSQL (9\.\d+)\.\d+/', $version_string, $matches)) {
+  if (preg_match('/PostgreSQL (\d+\.\d+)\.\d+/', $version_string, $matches)) {
     $version = $matches[1];
   }
   variable_set('pgsql_version', $version);
@@ -67,7 +67,13 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
   // If it exists and the mode is 1 (Insert Only) then return an error to drush.
   if (sizeof($record) == 1) {
     if ($mode == $insert_only) {
-      return drush_set_error(dt('Record "@record_type" already exists but you chose to only insert (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($select_values,TRUE));
+      tripal_report_error(
+        'genotypes_loader',
+        TRIPAL_ERROR,
+        'Record "@record_type" already exists but you chose to only insert (mode=@mode). Values: '.print_r($select_values, TRUE), 
+        array('@record_type' => $record_type, '@mode' => $mode)
+      );
+      return FALSE;
     }
     // Otherwise the mode allows select so return the value of the primary key.
     else {
@@ -78,7 +84,13 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
   // If more then one result is returned then this is NOT UNIQUE and we should report an
   // error to the user - not just run with the first one.
   elseif (sizeof($record) > 1) {
-    return drush_set_error(dt('Record "@record_type" is not unique. (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($select_values,TRUE));
+    tripal_report_error(
+      'genotypes_loader',
+      TRIPAL_ERROR,
+      'Record "@record_type" is not unique. (mode=@mode). Values: ' . print_r($select_values,TRUE), 
+      array('@record_type' => $record_type, '@mode' => $mode)
+    );
+    return FALSE;
   }
 
   // If there is no pre-existing sample but we've been given permission to create it,
@@ -96,13 +108,25 @@ function genotypes_loader_helper_add_record_with_mode($record_type, $table, $mod
     }
     // Otherwise, something went wrong so tell the user
     else {
-      return drush_set_error(dt('Tried to insert "@record_type" but the primary key is returned empty (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+      tripal_report_error(
+        'genotypes_loader',
+        TRIPAL_ERROR,
+        'Tried to insert "@record_type" but the primary key is returned empty (mode=@mode). Values: '.print_r($values,TRUE), 
+        array('@record_type' => $record_type, '@mode' => $mode)
+      );
+      return FALSE;
     }
   }
   // If there is no pre-existing record and we are not allowed to create one
   // then return an error.
   else {
-    return drush_set_error(dt('Record "@record_type" doesn\'t already exist but you chose to only select (mode=@mode). Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+    tripal_report_error(
+      'genotypes_loader',
+      TRIPAL_ERROR,
+      'Record "@record_type" doesn\'t already exist but you chose to only select (mode=@mode). Values: ', 
+      array('@record_type' => $record_type, '@mode' => $mode)
+    );
+    return FALSE;
   }
 }
 
@@ -177,7 +201,7 @@ function genotypes_loader_helper_copy_records($record_count, $record_type, $tabl
     $file_handle = fopen($file_name, 'w');
     fclose($file_handle);
 
-    drush_log("Copied in " . $record_count . " records.");
+    print("Copied in " . $record_count . " records.\n");
   }
 
   return TRUE;
@@ -333,14 +357,28 @@ function genotypes_loader_helper_add_genotypes_genotype_call($v, $num_calls = 0,
   $insert_only = 1;
   $both = 2;
 
-   // Genotype.
-  $genotype_id = genotypes_loader_helper_add_record_with_mode('Genotype', 'genotype', $both, array(
+  // Genotype.
+  // The uniquename is required to be unique. By selecting based on it we ensure we don't
+  // attempt to insert a duplicate genotype.
+  $select = array(
+    'uniquename' => $v['allele'],
+  );
+  $insert = array(
     'name' => $v['allele'],
     'uniquename' => $v['allele'],
     'description' => $v['allele'],
     'type_id' => $v['genotype_type_id'],
-  ));
-  if (!$genotype_id) return drush_set_error(dt('ERROR: Could not insert the genotype into the genotype table. Values: ', array('@record_type' => $record_type, '@mode' => $mode)).print_r($values,TRUE));
+  );
+  $genotype_id = genotypes_loader_helper_add_record_with_mode('Genotype', 'genotype', $both, $select, $insert);
+  if (!$genotype_id) {
+    tripal_report_error(
+      'genotypes_loader',
+      TRIPAL_ERROR,
+      'ERROR: Could not insert the genotype into the genotype table. Values: '.print_r($v,TRUE), 
+      array('@record_type' => $record_type, '@mode' => $mode)
+    );
+    return FALSE;
+  }
 
   // Enter the genotype call by adding to a file and copy in as a batch
   $insert_values = array(
