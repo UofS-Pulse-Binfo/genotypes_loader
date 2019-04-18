@@ -65,7 +65,9 @@ function genotypes_loader_enable() {
   // [genetic marker]/[variant] free-text type is schema:additionalType
   // This is used for a secondary type for markers (e.g. KASP) and variants (e.g. SNP).
   // No need to insert it since it's used heavily throughout Tripal.
-  
+
+  drupal_set_message('Please configure the terms used for loading genotype data at Admin > Tripal > Extensions > Genotype Loader.', 'warning');
+
 }
 
 /**
