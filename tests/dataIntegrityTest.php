@@ -115,6 +115,19 @@ class dataIntegrityTest extends TripalTestCase {
     $this->assertEquals(22, $num_calls,
       'There was not the expected number of calls in the genotype_call table for this project: '.$project->project_id);
 
+
+    // If the VCF "ID" field is provided use it for variant/marker names.
+    // See Issue #38
+    // Check for variant '1Ap11111' and 'Catscription Factor 1' exist but '1Ap22222' doesn't.
+    $result = chado_select_record('feature',['feature_id'],['name'=>'1Ap11111', 'organism_id' => $organism->organism_id]);
+    $this->assertNotEmpty($result, 'Unable to find 1Ap11111 variant.');
+
+    $result = chado_select_record('feature',['feature_id'],['name'=>'Catscription Factor 1', 'organism_id' => $organism->organism_id]);
+    $this->assertNotEmpty($result, 'Unable to find "Catscription Factor 1" variant.');
+
+    $result = chado_select_record('feature',['feature_id'],['name'=>'1Ap22222', 'organism_id' => $organism->organism_id]);
+    $this->assertEmpty($result, 'Should not find 1Ap22222 variant.');
+
     // Clean up ALL THE THINGS!
     // --------------------------------
     foreach ($delete as $table => $ids) {

@@ -113,8 +113,13 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
     ));
     if (!$chromosome_id) { return tripal_report_error('genotypes_loader',TRIPAL_ERROR,'ERROR: Could not find a chromosome ID for @backbone', array('@backbone' => $backbone_name)); }
 
-    // @TODO: This works for KP but do we want to make it generic?
-    $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
+    // If there is a value for ID, use it as the variant name.
+    $variant_name = $marker['ID'];
+    if ($variant_name == '.') {
+      // @TODO: This works for KP but do we want to make it generic?
+      $variant_name = $marker['#CHROM'] . 'p' . $marker['POS'];
+    }
+
     $marker_name = $variant_name . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
 
     // Now create a variant and marker in Chado, and link it to a chromosome.
