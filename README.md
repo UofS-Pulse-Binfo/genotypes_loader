@@ -22,8 +22,8 @@ This module provides a drush command to load genotypic data from a variety of fi
 **This loader supports 3 different file formats (described under file formats below) and will auto-detect which format you have provided.**
 
 Example Usage:
- - Load a genotype matrix file (sample.matrix.tsv) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
-   - `drush load-genotypes sample_files/sample.matrix.tsv samples.list`
+ - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
+   - `drush load-genotypes sample_files/sample.vcf samples.list`
  - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list but provide the command with all the options upfront to avoid prompting.
    - `drush load-genotypes sample_files/sample.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
 
