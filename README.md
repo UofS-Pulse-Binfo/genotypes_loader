@@ -1,10 +1,10 @@
 # Genotypes Loader
 
-This module provides a drush command to load genotypic data from a variety of file formats. Data is saved in GMOD Chado with three separate methods supported (See Data Storage below).
+This module provides a drush command to load genotypic data from a variety of file formats including Variant Call Format (VCF), Genotype Matrix and Genotype Flat-File formats as described below. It stores genotype calls in the custom chado-esque genotype_call table; whereas, all other meta data is stored in a chado-compliant manner.
 
 ## Dependencies
 1. Tripal 3.x
-2. PostgreSQL 9.3 and up (at least 9.4 is recommended)
+2. PostgreSQL 9.3 and up (9.4+ is recommended)
 
 ## Command
  - Command: load-genotypes
@@ -22,10 +22,10 @@ This module provides a drush command to load genotypic data from a variety of fi
 **This loader supports 3 different file formats (described under file formats below) and will auto-detect which format you have provided.**
 
 Example Usage:
- - Load a genotype matrix file (mymatrix.tsv) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
-   - `drush load-genotypes mymatrix.tsv samples.list`
- - Load a VCF file (mygenotypes.vcf) using the sample/germplasm information provided in samples.list but provide the command with all the options upfront to avoid prompting.
-   - `drush load-genotypes mygenotypes.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
+ - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
+   - `drush load-genotypes sample_files/sample.vcf samples.list`
+ - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list but provide the command with all the options upfront to avoid prompting.
+   - `drush load-genotypes sample_files/sample.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
 
 ## File Formats
 ### Genotypes File
@@ -101,7 +101,7 @@ Amato Amato_110201 Catsam10 Amato Catgerm10 Individual Felis catus
 ```
 
 ## Data Storage
-Genotypes loaded by this module can be stored in chado in via one of the following admin selected methods:
+Genotypes can be stored in Chado via the ND Experiment module or through the stock_genotype table. However, both of these methods are inefficient and not suited to the magnitude of genotypic data we are currently handling. Therefore, we have created a chado-esque linking table (`genotype_call`) which makes storage of genotypic data in Chado much more efficient.
 
 | Method | Name           | Custom Tables | Supports Meta-data | # Tables | Comments                                                                                                                                          |
 |--------|----------------|---------------|--------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -111,16 +111,16 @@ Genotypes loaded by this module can be stored in chado in via one of the followi
 
 For more information see [ND Genotypes: How to Store your Data](https://github.com/UofS-Pulse-Binfo/nd_genotypes/wiki/How-to-Store-your-Data).
 
-This module currently expects the following controlled vocabulary terms already exist in chado:
+The following are the default terms used by this module with the exception of those indicated by the user. 
 
 |   Purpose    | Term Name           | Controlled Vocabulary |
 |-------|---------------------|-----------------------|
 | Sample type | genomic_DNA         | sequence              |
 | Sample => germplasm relationship | is_extracted_from   | stock_relationship    |
-| Marker => variant relationship | is_marker_of        | stock_relationship    |
+| Marker => variant relationship | is_marker_of        | feature_relationship    |
 | Marker type | *Indicated by user* | sequence              |
 | Property type for free-text marker description | additionalType         | schema      |
 | Variant type | *Indicated by user* | sequence              |
 | Property type for free-text variant description | additionalType        | schema      |
 
-You can configure these terms through a settings form under module configuration. In the future, you will also be able to configure the controlled vocabularies for these terms as well.
+These are inserted on install but we highly recommend you configure them for your data at `Admin > Tripal > Extensions > Genotypes Loader`. In the future, you will also be able to configure the controlled vocabularies for these terms as well.
