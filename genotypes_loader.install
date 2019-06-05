@@ -12,7 +12,7 @@ function genotypes_loader_enable() {
   
   // If not using PostgreSQL 9.3+, give an error
   if (is_numeric($pg_version)) {
-    if ($pg_version < 9.3) {
+    if (version_compare($pg_version, '9.3', '<')) {
       drupal_set_message(t('This module requires PostgreSQL 9.3 or higher.'), 'error');
       
       tripal_report_error(
