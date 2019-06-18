@@ -13,9 +13,10 @@
 function genotypes_loader_recheck_postgresql_version() {
   $version_string = db_query('SELECT version()')->fetchField();
   $version = '9.2';
-  if (preg_match('/PostgreSQL (\d+\.\d+)\.\d+/', $version_string, $matches)) {
+  if (preg_match('/PostgreSQL (\d+\.\d+)/', $version_string, $matches)) {
     $version = $matches[1];
   }
+
   variable_set('pgsql_version', $version);
 
   return $version;
@@ -25,7 +26,7 @@ function genotypes_loader_recheck_postgresql_version() {
   * Retrieve the postgreSQL version.
   */
 function genotypes_loader_get_postgresql_version() {
-  return variable_get('pgsql_version', '9.2');
+  return variable_get('pgsql_version', genotypes_loader_recheck_postgresql_version());
 }
 
 /**
