@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/UofS-Pulse-Binfo/genotypes_loader.svg?branch=master)](https://travis-ci.org/UofS-Pulse-Binfo/genotypes_loader)
+[![Maintainability](https://api.codeclimate.com/v1/badges/14f3972040ba32dff461/maintainability)](https://codeclimate.com/github/UofS-Pulse-Binfo/genotypes_loader/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/14f3972040ba32dff461/test_coverage)](https://codeclimate.com/github/UofS-Pulse-Binfo/genotypes_loader/test_coverage)
+
 # Genotypes Loader
 
 This module provides a drush command to load genotypic data from a variety of file formats including Variant Call Format (VCF), Genotype Matrix and Genotype Flat-File formats as described below. It stores genotype calls in the custom chado-esque genotype_call table; whereas, all other meta data is stored in a chado-compliant manner.
