@@ -29,7 +29,8 @@ Example Usage:
  - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
    - `drush load-genotypes sample_files/sample.vcf samples.list`
  - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list but provide the command with all the options upfront to avoid prompting.
-   - `drush load-genotypes sample_files/sample.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
+   - `drush load-genotypes sample_files/sample.vcf sample_files/samples.list --organism="Tripalus databasica" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
+   - NOTE: you must first create an organism (`Tripalus databasica`), a project (`My SNP Discovery Project`), a germplasm type cvterm (`stock_type:Individual`), and a chromosome feature (`LcChr1`, type: `sequence:chromosome`).
 
 ## File Formats
 ### Genotypes File
@@ -115,7 +116,7 @@ Genotypes can be stored in Chado via the ND Experiment module or through the sto
 
 For more information see [ND Genotypes: How to Store your Data](https://github.com/UofS-Pulse-Binfo/nd_genotypes/wiki/How-to-Store-your-Data).
 
-The following are the default terms used by this module with the exception of those indicated by the user. 
+The following are the default terms used by this module with the exception of those indicated by the user.
 
 |   Purpose    | Term Name           | Controlled Vocabulary |
 |-------|---------------------|-----------------------|
