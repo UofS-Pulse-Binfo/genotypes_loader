@@ -10,7 +10,7 @@ class dataIntegrityTest extends TripalTestCase {
   // We can't use transactions due to the copy command, since it creates an
   // additional connection outside the transaction which can't see previously
   // loaded data.
-  // use DBTransaction;
+  use DBTransaction;
 
   /**
    * Tests loading of a VCF file.
@@ -73,8 +73,8 @@ class dataIntegrityTest extends TripalTestCase {
 
     // Add chromosomes needed for the VCF file.
     $chr = factory('chado.feature')->create([
-      'name'=>'1A',
-      'uniquename'=>'1A',
+      'name' => '1A',
+      'uniquename' => '1A',
       'organism_id' => $organism->organism_id
     ]);
     $delete['feature'][] = $chr->feature_id;
