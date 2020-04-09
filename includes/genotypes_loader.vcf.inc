@@ -157,6 +157,16 @@ function genotypes_loader_load_VCF($input_file = NULL, $options, $terms) {
     ));
     if (!$marker_type_prop_id) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not find a marker type property ID for @marker_type', array('@marker_type' => $marker_name)); }
 
+    // ----- Link Marker to Project -----
+    $status = genotypes_loader_helper_add_record_with_mode('Marker Project Link', 'project_feature', $both, array(
+      'feature_id' => $marker_id,
+      'project_id' => $options['project_id'],
+    ));
+    if (!$status) { return tripal_report_error('genotypes_loader', TRIPAL_ERROR,'ERROR: Could not link marker @marker to project @project', array(
+      '@project' => $options['project_name'],
+      '@marker' => $marker_name));
+    }
+
     // ----- Link Variant to Marker -----
     $status = genotypes_loader_helper_add_record_with_mode('Marker Variant Link', 'feature_relationship', $both, array(
       'subject_id' => $marker_id,
