@@ -27,7 +27,7 @@ This module provides a drush command to load genotypic data from a variety of fi
 
 Example Usage:
  - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list. With this example, you will be prompted to enter each of the options listed above.
-   - `drush load-genotypes sample_files/sample.vcf samples.list`
+   - `drush load-genotypes sample_files/sample.vcf sample_file/samples.list`
  - Load a VCF file (sample.vcf) using the sample/germplasm information provided in samples.list but provide the command with all the options upfront to avoid prompting.
    - `drush load-genotypes sample_files/sample.vcf sample_files/samples.list --organism="Tripalus databasica" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"`
    - NOTE: you must first create an organism (`Tripalus databasica`), a project (`My SNP Discovery Project`), a germplasm type cvterm (`stock_type:Individual`), and a chromosome feature (`LcChr1`, type: `sequence:chromosome`).
