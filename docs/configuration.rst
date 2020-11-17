@@ -2,9 +2,6 @@
 Configuration
 =============
 
-.. note::
-  This documentation is under development.
-
 Controlled Vocabulary Terms
 ---------------------------
 

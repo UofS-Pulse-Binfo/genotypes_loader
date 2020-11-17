@@ -6,10 +6,9 @@ Genotypic data is stored through use of a custom table (genotype_call) created b
 
 .. note::
   This loader stores data as expected by the `ND Genotypes <https://github.com/UofS-Pulse-Binfo/nd_genotypes>`_.
-  
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
+
    data_storage/schema
-   data_storage/benchmarking
