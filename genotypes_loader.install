@@ -7,14 +7,14 @@ function genotypes_loader_enable() {
 
   // Determine the PostgreSQL version.
   $pg_version = genotypes_loader_recheck_postgresql_version();
-  
+
   drupal_set_message(t('Your postgresql version is: %curr', array('%curr' => $pg_version)));
-  
+
   // If not using PostgreSQL 9.3+, give an error
   if (is_numeric($pg_version)) {
     if (version_compare($pg_version, '9.3', '<')) {
       drupal_set_message(t('This module requires PostgreSQL 9.3 or higher.'), 'error');
-      
+
       tripal_report_error(
         'genotypes_loader',
         TRIPAL_ERROR,
@@ -24,7 +24,7 @@ function genotypes_loader_enable() {
     }
   } else {
     drupal_set_message(t('Could not determine current version of PostgreSQL. This module requires 9.3 or higher.'), 'error');
-    
+
     tripal_report_error(
       'genotypes_loader',
       TRIPAL_ERROR,
@@ -32,8 +32,8 @@ function genotypes_loader_enable() {
       array( ':curr' => $pg_version )
     );
   }
-  
-  
+
+
   // Add required terms for loader.
   // -------------------------------
   // stock is of type genomic_DNA.
@@ -77,12 +77,12 @@ function genotypes_loader_install() {
 
   // Determine the PostgreSQL version.
   $pg_version = genotypes_loader_recheck_postgresql_version();
-  
+
   // If not using PostgreSQL 9.3+, give an error
   if (is_numeric($pg_version)) {
     if ($pg_version < 9.3) {
       drupal_set_message(t('This module requires PostgreSQL 9.3 or higher.'), 'error');
-      
+
       tripal_report_error(
         'genotypes_loader',
         TRIPAL_ERROR,
@@ -92,7 +92,7 @@ function genotypes_loader_install() {
     }
   } else {
     drupal_set_message(t('Could not determine current version of PostgreSQL. This module requires 9.3 or higher.'), 'error');
-    
+
     tripal_report_error(
       'genotypes_loader',
       TRIPAL_ERROR,
@@ -100,4 +100,115 @@ function genotypes_loader_install() {
       array( ':curr' => $pg_version )
     );
   }
+
+  // Create the genotype_call table for storing genotypes in chado.
+  chado_create_custom_table(
+    'genotype_call',
+    nd_genotypes_genotype_call_schema_template(),
+    TRUE, NULL, FALSE
+  );
+
+}
+
+/**
+ * The schema for the custom genotype_call table.
+ */
+function nd_genotypes_genotype_call_schema_template() {
+
+  $version = variable_get('pgsql_version', 9.2);
+
+  return array(
+    'description' => 'A more compact way to store genotype calls.',
+    'fields' => array(
+      'genotype_call_id' => array(
+        'name' => 'genotype_call_id',
+        'title' => 'Call ID',
+        'description' => 'The primary key',
+        'pgsql_type' => 'bigserial',
+        'views_type' => 'int',
+      ),
+      'variant_id' => array(
+        'name' => 'variant_id',
+        'title' => 'Variant ID',
+        'description' => 'Links to the feature describing the loci with variation.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'marker_id' => array(
+        'name' => 'marker_id',
+        'title' => 'Marker ID',
+        'description' => 'Links to the feature describing the marker.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'genotype_id' => array(
+        'name' => 'genotype_id',
+        'title' => 'Genotype ID',
+        'description' => 'Links to the allele call.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'project_id' => array(
+        'name' => 'project_id',
+        'title' => 'Project ID',
+        'description' => 'Links to the project grouping calls from a single analysis.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'stock_id' => array(
+        'name' => 'stock_id',
+        'title' => 'Stock ID',
+        'description' => 'Links to the DNA stock assayed by the marker.',
+        'pgsql_type' => 'bigint',
+        'views_type' => 'int',
+        'not null' => TRUE,
+      ),
+      'meta_data' => array(
+        'name' => 'meta_data',
+        'title' => 'Meta data',
+        'description' => 'JSON storage of any addition meta-data for the call.',
+        'pgsql_type' => ($version >= 9.4) ? 'jsonb' : 'json',
+        'views_type' => 'text',
+      ),
+    ),
+    'primary key' => array('genotype_call_id'),
+    'unique keys' => array(),
+    'foreign keys' => array(
+      'feature' => array(
+        'table' => 'feature',
+        'columns' => array(
+          'variant_id' => 'feature_id',
+          'marker_id' => 'feature_id'
+        ),
+      ),
+      'genotype' => array(
+        'table' => 'genotype',
+        'columns' => array(
+          'genotype_id' => 'genotype_id'
+        ),
+      ),
+      'project' => array(
+        'table' => 'project',
+        'columns' => array(
+          'project_id' => 'project_id'
+        ),
+      ),
+      'stock' => array(
+        'table' => 'stock',
+        'columns' => array(
+          'stock_id' => 'stock_id'
+        ),
+      ),
+    ),
+    'indexes' => array(
+      'genotypecall_variant_id' => array('variant_id'),
+      'genotypecall_marker_id' => array('marker_id'),
+      'genotypecall_project_id' => array('project_id'),
+      'genotypecall_stock_id' => array('stock_id'),
+    ),
+  );
 }
