@@ -15,4 +15,5 @@ This module provides a drush command to load genotypic data from a variety of fi
    configuration
    usage
    file_formats
+   demo
    data_storage
