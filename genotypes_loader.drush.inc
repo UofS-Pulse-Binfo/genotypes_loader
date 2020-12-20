@@ -310,7 +310,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
     $germplasm_accession = array_shift($current_line);
 
     // Setting the following as defaults if the 6th and/or 7th columns are not provided
-    $germplasm_type = 'Individual';
+    $germplasm_type = 'accession';
     $organism_id = $options['organism_id'];
 
     // User can optionally supply a stock_type for each germplasm if they are inserting
@@ -321,6 +321,13 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
         $cv_name = 'stock_type';
+        $terms[$germplasm_type] = array('name' => $germplasm_type, 'cv_name' => $cv_name);
+        $terms[$germplasm_type]['cvterm_id'] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
+      }
+      if (!$terms[$germplasm_type]['cvterm_id']) {
+        // Query to retrieve type IDs was set above:
+        // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
+        $cv_name = 'germplasm_ontology';
         $terms[$germplasm_type] = array('name' => $germplasm_type, 'cv_name' => $cv_name);
         $terms[$germplasm_type]['cvterm_id'] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }

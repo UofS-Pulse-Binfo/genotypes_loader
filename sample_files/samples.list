@@ -1,4 +1,4 @@
 VCF_header_sample	Sample_name	Sample_Accession	Germplasm_name	Germplasm_Accession	Germplasm_type	Organism
-1048-8R	1048-8R LAM Plate1 Extraction	KP:GERM7951_LAM_plate1_extraction	1048-8R	KP:GERM7951	Individual	Citrus sinensis
-964a-46	964a-46 LAM Plate1 Extraction	KP:GERM6755_LAM_plate1_extraction	964a-46	KP:GERM6755	Individual	Citrus sinensis
-Giftgi	Giftgi LAM Plate1 Extraction	KP:GERM9771_LAM_plate1_extraction	Giftgi	KP:GERM9771	Individual	Citrus sinensis
+Cs-1	CsExtration1	Cs-1-20090805	Orangie	Cs-1	accession	Citrus sinensis
+Cs-2	CsExtraction2	Cs-2-20090805	Orangificent	Cs-2	accession	Citrus sinensis
+Cs-3	CsExtraction3	Cs-3-20090805	Orang	Cs-3	accession	Citrus sinensis

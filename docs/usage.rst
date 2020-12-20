@@ -33,4 +33,6 @@ Example Usage
 
 .. code::
 
-  drush load-genotypes mygenotypes.vcf samples.list --organism="Lens culinaris" --variant-type="SNP" --marker-type="genetic_marker" --project-name="My SNP Discovery Project" --ndgeolocation="here"``
+  drush load-genotypes sample.vcf samples.list --organism="Citrus sinensis" \
+    --variant-type="SNP" --marker-type="genetic_marker" \
+    --project-name="Citrus Demonstration Genotypic Data"
