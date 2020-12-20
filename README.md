@@ -32,6 +32,10 @@ drush pm-enable genotypes_loader
 
 Please visit our [online documentation](https://genotypes-loader.readthedocs.io/en/latest/index.html) to learn more about installation, usage and features.
 
+### Demonstration
+
+If you would like to evaluate this module using demonstration data, there is a [full tutorial in our documentation](https://genotypes-loader.readthedocs.io/en/latest/demo.html).
+
 ## Funding
 
 This work is supported by Saskatchewan Pulse Growers [grant: BRE1516, BRE0601], Western Grains Research Foundation, Genome Canada [grant: 8302, 16302], Government of Saskatchewan [grant: 20150331], and the University of Saskatchewan.
