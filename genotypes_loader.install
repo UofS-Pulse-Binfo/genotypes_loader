@@ -104,7 +104,7 @@ function genotypes_loader_install() {
   // Create the genotype_call table for storing genotypes in chado.
   chado_create_custom_table(
     'genotype_call',
-    nd_genotypes_genotype_call_schema_template(),
+    genotypes_loader_genotype_call_schema_template(),
     TRUE, NULL, FALSE
   );
 
@@ -113,7 +113,7 @@ function genotypes_loader_install() {
 /**
  * The schema for the custom genotype_call table.
  */
-function nd_genotypes_genotype_call_schema_template() {
+function genotypes_loader_genotype_call_schema_template() {
 
   $version = variable_get('pgsql_version', 9.2);
 
