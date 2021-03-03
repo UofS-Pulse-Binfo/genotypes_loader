@@ -327,7 +327,7 @@ function genotypes_loader_load_genotypes($input_file = NULL, $sample_file = NULL
       if (!$terms[$germplasm_type]['cvterm_id']) {
         // Query to retrieve type IDs was set above:
         // SELECT cvterm_id FROM {cvterm} WHERE name=:name AND cvterm.cv_id IN (SELECT cv_id FROM {cv} WHERE name=:cv_name)
-        $cv_name = 'germplasm_ontology';
+        $cv_name = 'GCP germplasm ontology';
         $terms[$germplasm_type] = array('name' => $germplasm_type, 'cv_name' => $cv_name);
         $terms[$germplasm_type]['cvterm_id'] = chado_query($type_query, array(':name' => $germplasm_type, ':cv_name' => $cv_name))->fetchField();
       }
