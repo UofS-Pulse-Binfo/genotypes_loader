@@ -242,12 +242,25 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
         'stock_name' => $options['sample_list'][$source_name]['sample_name'],
         'allele' => $allele,
       );
-      if (isset($options['nd_geolocation'])) $fields['nd_geolocation'] = $options['nd_geolocation'];
 
-      $status = call_user_func('genotypes_loader_helper_add_genotypes_'.$options['storage_method'], $fields);
+      // Insert genotypes based on the preferred storage method
+      if ($options['storage_method'] == 'genotype_call') {
+      // Leaving the following bit commented out in case we want to insert metadata from this format in the future
+      //   $fields['meta_data'] = json_encode($metadata);
+        $status = genotypes_loader_helper_add_genotypes_genotype_call($fields, $num_calls, $remote_copy_filename);
+      }
+      // @TODO: ND genotypes option - deprecating this in the future?
+      else if ($options['storage_method'] == 'nd_geolocation') {
+        $fields['nd_geolocation'] = $options['nd_geolocation'];
+        $status = genotypes_loader_helper_add_genotypes_nd_exp($fields);
+      }
+      else if ($options['storage_method'] == 'stock_genotype') {
+        $status = genotypes_loader_helper_add_genotypes_stock_genotype($fields);
+      }
       // @TODO: return a useful error message
       if (!$status) { return FALSE; }
     }
+
     // Update progress
     $num_lines++;
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
