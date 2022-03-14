@@ -41,6 +41,16 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
   $insert_only = 1;
   $both = 2;
 
+  // Set the file name to be used for remote copy
+  if ($options['storage_method'] == 'genotype_call') {
+    // Pull out the name of the database to ensure the file is not overwritten by a concurrent upload
+    // to another database (yes, I speak from experience)
+    global $databases;
+    $db_name = $databases['default']['default']['database'];
+    $table_name = 'genotype_call';
+    $remote_copy_filename = '/tmp/genotypes_loader.' . $db_name . '-' . $table_name . '.remotecopy.csv';
+  }
+
   // Open our matrix file
   $MATRIX_FILE = fopen($input_file, "r") or die("ERROR: Unable to open $input_file!");
 
@@ -71,6 +81,9 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
   // Start the progress bar
   $progress = genotypes_loader_print_progress($num_lines, $total_lines);
   print($progress);
+
+  // Start the counter for number of (non-empty) genotypic calls
+  $num_calls = 0;
 
   // For each line in the file (except the header) save the genotypes to the database
   // according to the specified method.
@@ -210,12 +223,15 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
 
       // Skip the first 3 columns since they have to do with marker/location which
       // have already been handled above.
-      if ($k <= 2) continue;
+      if ($k <= 2) { continue; }
 
       // If $allele is empty, it means we have missing data for this genotype.
       // Thus, skip this particular genotype and move onto the next.
       // @TODO: Should also check for non-nucleotides? Something like N/A?
-      if (!$allele) continue;
+      if (!$allele) { continue; }
+
+      // Since the allele is non-empty, increment the genotype call count
+      $num_calls++;
 
       // Get the source name so that we can find the unique stock name and ID stored in options
       $source_name = $header[$k];
@@ -266,6 +282,13 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
     $progress = genotypes_loader_print_progress($num_lines, $total_lines);
     print($progress);
   }
+
+  // Since we finished inserting the calls, we may want to clean up if we were using the COPY method
+  if ($options['storage_method'] == 'genotype_call') {
+    print("\nCopying in the final batch of calls...\n");
+    $status = genotypes_loader_helper_copy_records($num_calls, NULL, NULL, array(), $remote_copy_filename, TRUE);
+  }
+
   // If we got here without returning an error then we completed successfully!
   print("\n");
   drush_log("Loading Complete. " . $num_lines . " lines processed.", "success");
