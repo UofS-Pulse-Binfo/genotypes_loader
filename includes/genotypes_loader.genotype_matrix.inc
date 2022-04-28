@@ -95,11 +95,14 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
     if (sizeof($current_line) < 2) { continue; }
     $line_num = $num_lines+1;
 
-    // Set up some readable variables for the info stored in the first 3 columns.
+    // Set up some readable variables for the info stored in the first 3 columns: marker name, chromosome, position
     // ----- Column 1 => Variant Name, Marker Name -----
     if ($current_line[0]) {
-      $variant_name = $current_line[0];
-      $marker_name = $current_line[0] . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
+      // Build the variant name from the chromosome and position. The name and uniquename will be the same.
+      $variant_name = $current_line[1] . 'p' . $current_line[2];
+      // Build the marker name from the variant name and marker type. Marker unique name is determined by the marker name in the file.
+      $marker_name = $variant_name . ' ' . ucwords(str_replace('_',' ',$options['marker_type']));
+      $marker_unique_name = $current_line[0];
     } else {
       return drush_set_error(dt('ERROR: Unexpected empty value for variant name at line #@line_number', array('@line_number' => $num_lines)));
     }
@@ -155,7 +158,7 @@ function genotypes_loader_load_matrix($input_file, $options, $terms, $job_id = 0
     // ----- Marker -----
     $marker_id = genotypes_loader_helper_add_record_with_mode('Marker', 'feature', $options['insert_markers'], array(
       'name' => $marker_name,
-      'uniquename' => $marker_name,
+      'uniquename' => $marker_unique_name,
       'organism_id' => $options['organism_id'],
       'type_id' => $terms['marker_type']['cvterm_id'],
     ));
